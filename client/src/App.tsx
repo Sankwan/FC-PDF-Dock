@@ -1,4 +1,5 @@
-import { Route, Switch } from "wouter";
+import { useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/Layout";
@@ -15,6 +16,16 @@ import SignPdf from "@/pages/SignPdf";
 import OcrPdf from "@/pages/OcrPdf";
 import WordToPdf from "@/pages/WordToPdf";
 import PdfToWord from "@/pages/PdfToWord";
+
+function ScrollToTop() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  return null;
+}
 
 function Router() {
   return (
@@ -39,6 +50,7 @@ function Router() {
 function App() {
   return (
     <FileVaultProvider>
+      <ScrollToTop />
       <Layout>
         <Router />
       </Layout>
