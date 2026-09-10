@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Brand tokens — the one place to edit for a new company/skin.
+ * Values are HSL triplets (no hsl() wrapper) to match Tailwind's
+ * hsl(var(--x)) convention used below and in tailwind.config.ts.
+ *
+ * Default accent is a deep teal (#0d6e5c). To rebrand a build for a
+ * sister company, change --brand / --brand-dark / --brand-tint here
+ * and the app name in .env (VITE_APP_NAME) — nothing else.
+ */
+:root {
+  --brand: 169 79% 24%;
+  --brand-dark: 168 84% 17%;
+  --brand-tint: 165 32% 92%;
+
+  /* Page background — the "gray canvas" every tool section sits on. */
+  --background: 240 5% 96%;
+  --foreground: 240 10% 4%;
+
+  /* Cards/panels — the white surface tool content sits on, one step
+     lighter than --background. Distinct token because the two need to
+     stay visually separated in both themes (a white card on a white page
+     would disappear). */
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 4%;
+
+  --muted: 240 5% 92%;
+  --muted-foreground: 240 4% 46%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 4%;
+
+  --border: 240 6% 90%;
+  --input: 240 6% 88%;
+  --ring: var(--brand);
+
+  --primary: var(--brand);
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 6% 10%;
+
+  --accent: var(--brand-tint);
+  --accent-foreground: var(--brand-dark);
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --radius: 0.25rem;
+}
+
+.dark {
+  /* Same brand hue, lifted slightly so it still reads as an accent against
+     a dark background instead of receding into it. */
+  --brand: 169 55% 42%;
+  --brand-dark: 169 60% 32%;
+  --brand-tint: 169 25% 16%;
+
+  --background: 240 6% 8%;
+  --foreground: 0 0% 95%;
+
+  --card: 240 6% 12%;
+  --card-foreground: 0 0% 95%;
+
+  --muted: 240 5% 18%;
+  --muted-foreground: 240 5% 65%;
+
+  --popover: 240 6% 12%;
+  --popover-foreground: 0 0% 95%;
+
+  --border: 240 5% 22%;
+  --input: 240 5% 24%;
+  --ring: var(--brand);
+
+  --primary: var(--brand);
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 240 5% 16%;
+  --secondary-foreground: 0 0% 95%;
+
+  --accent: var(--brand-tint);
+  --accent-foreground: 0 0% 95%;
+
+  --destructive: 0 62% 48%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}

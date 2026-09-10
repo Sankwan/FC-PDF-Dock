@@ -1,0 +1,24 @@
+services:
+  pdf-to-word:
+    build: .
+    image: local-pdf-toolkit-pdf-to-word:latest
+    restart: unless-stopped
+    # Bound to loopback only by default — not reachable from any other
+    # machine, including over Tailscale, until you deliberately change
+    # this. Work through SECURITY.md before widening it.
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      API_KEY: ${API_KEY:?Set API_KEY in .env before starting — see .env.example}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      OCR_JOBS: ${OCR_JOBS:-2}
+      # PORT is deliberately NOT set here — that's a Railway-only mechanism
+      # (see DEPLOYMENT.md). Locally, the Dockerfile's CMD falls back to
+      # 8000, matching the ports mapping below.
+    tmpfs:
+      # Conversion temp files (uploaded PDF, intermediate OCR pass, output
+      # DOCX) live in memory only — never written to the container's disk
+      # layer or a host volume.
+      - /tmp

@@ -1,0 +1,36 @@
+# Templated by the nginx:alpine entrypoint (envsubst) at container start —
+# ${PORT} becomes Railway's dynamically-assigned port (falls back to the
+# Dockerfile's default ENV PORT=8080 for local `docker run`). Nginx's own
+# variables (like $uri below) are untouched by this since envsubst only
+# substitutes names that exist as real environment variables.
+server {
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json application/wasm image/svg+xml;
+    gzip_min_length 1024;
+
+    # The service worker and PWA manifest must always be revalidated —
+    # caching them lets a stale worker keep serving an old build forever.
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+    }
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+    }
+
+    # Vite's hashed build assets are safe to cache aggressively — a
+    # content change always produces a new filename.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # SPA fallback for wouter's client-side routing — any path that isn't
+    # a real file falls back to index.html instead of a 404.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
