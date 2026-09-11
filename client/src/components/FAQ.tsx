@@ -12,7 +12,7 @@ const faqs = [
     id: "q2",
     question: "Do my files get uploaded anywhere?",
     answer:
-      "No. All processing runs entirely in your browser using JavaScript libraries. Your files never leave your device — there is no server that ever sees them.",
+      "No. All processing runs entirely in your browser with no internet connection required. Your files never leave your PC or phone device",
   },
   {
     id: "q3",

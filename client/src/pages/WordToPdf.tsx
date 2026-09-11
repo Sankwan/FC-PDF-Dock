@@ -101,18 +101,7 @@ const WordToPdf = () => {
             <span className="text-brand text-xs font-semibold uppercase tracking-widest">Convert</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">Word to PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Converts .docx entirely in your browser — powered by{" "}
-            <a
-              href="https://github.com/developer0hye/office2pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-brand"
-            >
-              office2pdf
-            </a>{" "}
-            (Rust/WASM), no upload involved.
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Converts .docx to PDF</p>
         </div>
 
         <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">

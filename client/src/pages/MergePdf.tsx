@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
-import { Combine, Download, X } from "lucide-react";
+import { Combine, Download, X, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,17 @@ const MergePdf = () => {
   }, []);
 
   const handleRemovePdf = useCallback((index: number) => setPdfFiles(p => p.filter((_, i) => i !== index)), []);
+
+  const dragIndexRef = useRef<number | null>(null);
+  const handleReorderPdf = useCallback((from: number, to: number) => {
+    if (from === to) return;
+    setPdfFiles(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }, []);
 
   const handleClearPdfs = useCallback(() => {
     // Also drop these files from the shared workspace vault — otherwise a
@@ -135,8 +146,20 @@ const MergePdf = () => {
                       <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">File Order</Label>
                       <div className="border border-border divide-y divide-[#E0E0E0]">
                         {pdfFiles.map((file, i) => (
-                          <div key={`${file.name}-${i}`} className="flex items-center justify-between p-3">
+                          <div
+                            key={`${file.name}-${i}`}
+                            draggable
+                            onDragStart={() => { dragIndexRef.current = i; }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (dragIndexRef.current !== null) handleReorderPdf(dragIndexRef.current, i);
+                              dragIndexRef.current = null;
+                            }}
+                            className="flex items-center justify-between p-3 cursor-grab active:cursor-grabbing"
+                          >
                             <div className="flex items-center gap-3">
+                              <GripVertical size={14} className="text-muted-foreground flex-shrink-0" />
                               <div className="w-5 h-5 bg-brand text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                                 {i + 1}
                               </div>

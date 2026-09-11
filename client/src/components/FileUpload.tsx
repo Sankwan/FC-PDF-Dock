@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { Upload, FileText, ImageIcon, ArrowRight, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -43,21 +43,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
   } = useFileUpload({ accept, maxSizeInMB, multiple });
 
   const { files: vaultFiles, addFiles } = useFileVault();
-  const adopted = useRef(false);
 
-  // Files carried in from the drop hero (or another tool) are used automatically
+  // Files carried in from the drop hero (or another tool) are offered as a
+  // chip below, never auto-adopted — auto-adopting on mount used to
+  // resurrect files a page had just removed (remounting FileUpload at 0
+  // files re-imported the same vault entries) and silently pre-fill a
+  // fresh tool page with a document from a different tool.
   const carried = vaultFiles.filter((f) => fileMatchesAccept(f.file, accept));
 
   useEffect(() => {
-    if (adopted.current || files.length > 0 || carried.length === 0) return;
-    adopted.current = true;
-    onFilesSelected?.(multiple ? carried.map((f) => f.file) : [carried[0].file]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carried.length]);
-
-  useEffect(() => {
     if (files.length > 0) {
-      adopted.current = true;
       addFiles(files);
       onFilesSelected?.(files);
     }

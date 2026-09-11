@@ -54,7 +54,7 @@ export const convertImagesToPdf = async (
     const imageURL = await createImageURL(imageFile);
 
     try {
-      await addImageToPdf(doc, imageURL, pdfWidth, pdfHeight);
+      await addImageToPdf(doc, imageFile, imageURL, pdfWidth, pdfHeight, quality);
     } catch (error) {
       console.error(`Error adding image ${imageFile.name} to PDF:`, error);
       // Continue with next image
@@ -93,36 +93,55 @@ const createImageURL = (imageFile: File): Promise<string> => {
  */
 const addImageToPdf = (
   doc: jsPDF,
+  imageFile: File,
   imageURL: string,
   pdfWidth: number,
-  pdfHeight: number
+  pdfHeight: number,
+  quality: number
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.src = imageURL;
-    
+
     image.onload = () => {
       try {
         // Calculate image dimensions to fit the page while maintaining aspect ratio
         const imageWidth = image.width;
         const imageHeight = image.height;
         const imageAspectRatio = imageWidth / imageHeight;
-        
+
         let finalWidth = pdfWidth;
         let finalHeight = pdfWidth / imageAspectRatio;
-        
+
         // Check if image height exceeds page height
         if (finalHeight > pdfHeight) {
           finalHeight = pdfHeight;
           finalWidth = pdfHeight * imageAspectRatio;
         }
-        
+
         // Center the image on the page
         const x = (pdfWidth - finalWidth) / 2;
         const y = (pdfHeight - finalHeight) / 2;
-        
+
+        // jsPDF trusts the format label instead of sniffing the bytes —
+        // forcing "JPEG" on PNG/WebP source data (the previous behavior)
+        // corrupts or rejects the embed. Re-encoding through a canvas
+        // (the browser already decoded JPG/PNG/WebP alike to get here)
+        // gives jsPDF a format it's guaranteed to handle correctly.
+        const canvas = document.createElement("canvas");
+        canvas.width = imageWidth;
+        canvas.height = imageHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not create canvas context");
+        ctx.drawImage(image, 0, 0);
+
+        const isJpegSource = imageFile.type === "image/jpeg" || imageFile.type === "image/jpg";
+        const encoded = isJpegSource
+          ? canvas.toDataURL("image/jpeg", quality)
+          : canvas.toDataURL("image/png");
+
         // Add the image to the PDF
-        doc.addImage(imageURL, "JPEG", x, y, finalWidth, finalHeight);
+        doc.addImage(encoded, isJpegSource ? "JPEG" : "PNG", x, y, finalWidth, finalHeight);
         resolve();
       } catch (error) {
         reject(error);

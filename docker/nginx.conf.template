@@ -28,6 +28,17 @@ server {
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
+    # nginx's bundled mime.types has no entry for .mjs (ES modules), so it
+    # falls back to application/octet-stream — browsers refuse to execute
+    # a <script type="module"> or Worker with that MIME type. This is what
+    # breaks pdf.worker.min.mjs (pdfjs-dist) at runtime. Regex locations
+    # take priority over the /assets/ prefix location above, so the cache
+    # header is repeated here.
+    location ~* \.mjs$ {
+        default_type application/javascript;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
     # SPA fallback for wouter's client-side routing — any path that isn't
     # a real file falls back to index.html instead of a 404.
     location / {

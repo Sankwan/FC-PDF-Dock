@@ -94,8 +94,7 @@ const PdfToWord = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">PDF to Word</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Converts to .docx via a self-hosted conversion server — see below. Every other tool in
-            this app runs fully in your browser; this is the one exception.
+            Converts PDF to .docx file so you can open and edit it in Microsoft Word, Google Docs, etc.
           </p>
         </div>
 
@@ -114,9 +113,7 @@ const PdfToWord = () => {
             <div className="bg-brand-tint border border-brand/30 p-4 flex gap-3">
               <ServerOff size={15} className="text-brand flex-shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Unlike every other tool here, this one uploads your file</strong> —
-                to a server your organization runs and controls, never a third party. See "PDF to Word" in
-                the project README for exactly where it goes.
+                <strong className="text-foreground">Uploads here might take some time </strong>
               </p>
             </div>
 
