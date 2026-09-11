@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { Upload, FileText, ImageIcon, ArrowRight, RefreshCw } from "lucide-react";
+import { Upload, FileText, ImageIcon, ArrowRight, RefreshCw, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useFileVault, fileMatchesAccept } from "@/context/FileVault";
 import { formatFileSize } from "@/lib/fileUtils";
@@ -42,7 +42,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     error,
   } = useFileUpload({ accept, maxSizeInMB, multiple });
 
-  const { files: vaultFiles, addFiles } = useFileVault();
+  const { files: vaultFiles, addFiles, removeFile } = useFileVault();
 
   // Files carried in from the drop hero (or another tool) are offered as a
   // chip below, never auto-adopted — auto-adopting on mount used to
@@ -68,34 +68,43 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {carried.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() =>
-                  onFilesSelected?.(multiple ? carried.map((f) => f.file) : [item.file])
-                }
-                className="group flex items-center gap-3 rounded-xl border border-black/[0.06] bg-card px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-brand"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-tint">
-                  {item.kind === "image" ? (
-                    <img src={item.url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <FileText size={16} className="text-brand" />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">
-                    {item.file.name}
+              <div key={item.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onFilesSelected?.(multiple ? carried.map((f) => f.file) : [item.file])
+                  }
+                  className="flex w-full items-center gap-3 rounded-xl border border-black/[0.06] bg-card px-3 py-2.5 pr-8 text-left transition-all hover:-translate-y-0.5 hover:border-brand"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-tint">
+                    {item.kind === "image" ? (
+                      <img src={item.url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <FileText size={16} className="text-brand" />
+                    )}
                   </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {formatFileSize(item.file.size)}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-foreground">
+                      {item.file.name}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {formatFileSize(item.file.size)}
+                    </span>
                   </span>
-                </span>
-                <ArrowRight
-                  size={14}
-                  className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand"
-                />
-              </button>
+                  <ArrowRight
+                    size={14}
+                    className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeFile(item.id)}
+                  aria-label={`Remove ${item.file.name} from workspace`}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-muted-foreground hover:bg-black/[0.06] hover:text-foreground"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             ))}
           </div>
         </div>

@@ -186,9 +186,8 @@ const WordToPdf = () => {
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 max-w-2xl">
-          Complex layouts (footnotes, tracked changes, some SmartArt) may not render pixel-perfect —
-          see office2pdf's issue tracker for current fidelity gaps. Fonts not embedded in the file or
-          bundled with this build fall back to a close match automatically.
+          Complex layouts (footnotes, tracked changes, some SmartArt) may not render pixel-perfect. 
+          Fonts not embedded in the file or bundled with this build fall back to a close match automatically.
         </p>
       </div>
     </section>

@@ -130,7 +130,7 @@ const OcrPdf = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">OCR PDF</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Make a scanned PDF searchable and selectable. Runs a local OCR model entirely in your browser — no file or text ever leaves your device.
+            Make a scanned PDF searchable and selectable. You can copy text directly from any PDF you upload.
           </p>
         </div>
 
