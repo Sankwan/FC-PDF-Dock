@@ -39,7 +39,9 @@ npm run dev                      # http://localhost:5173
 
 # In a second terminal: the sign-in service (prints codes instead of emailing)
 cd services/auth && npm install && cp .env.example .env
-# set COOKIE_SECURE=false, MAIL_MODE=console, PUBLIC_URL=http://127.0.0.1:5173 in .env
+# set NODE_ENV=development, COOKIE_SECURE=false, MAIL_MODE=console,
+# PUBLIC_URL=http://localhost:5173, DEMO_EMAIL=demo.user@fc.gov.gh, and
+# DEMO_CODE=<your six-digit test code> in .env
 npm run dev                      # http://127.0.0.1:8100
 npm test                         # sign-in service tests
 ```
@@ -51,6 +53,48 @@ signing in.
 
 `npm run build` produces the static app in `dist/`. `npm run check` runs the
 TypeScript checks.
+
+## Railway test deployment
+
+For a test deployment without FC email configured, deploy two services from
+this repository in the same Railway project and environment:
+
+1. Create the frontend service from the repository root. Railway uses the
+   root `Dockerfile`. Set `VITE_AUTH_REQUIRED=true`,
+   `VITE_PDF2WORD_ENABLED=false`, and `AUTH_SERVICE_URL` to
+   `http://<auth-service-name>.railway.internal:8100` (for example,
+   `http://pdfdock-auth.railway.internal:8100`). Generate a Railway domain
+   for the frontend.
+2. Create an auth service from the same repository with its root directory
+   set to `/services/auth`. Do not generate a public domain for this service.
+   Mount a Railway volume at `/app/data` to persist its SQLite database.
+3. Set these variables on the auth service:
+   ```text
+   NODE_ENV=development
+   AUTH_SECRET=<a random secret of at least 32 characters>
+   PUBLIC_URL=https://<your-frontend-domain>
+   STAFF_EMAIL_DOMAIN=fc.gov.gh
+   MAIL_MODE=console
+   DEMO_EMAIL=demo.user@fc.gov.gh
+   DEMO_CODE=<your chosen six-digit test code>
+   COOKIE_SECURE=true
+   ```
+   Replace the email and code with your test values. `DEMO_CODE` must be set;
+   setting only `DEMO_EMAIL` does not enable demo sign-in. `MAIL_MODE=console`
+   prevents email delivery; for the demo address, the fixed code is accepted
+   and is also reported in the auth service logs.
+4. Deploy the auth service, then the frontend. Open the frontend's Railway
+   domain, request a code for the configured demo email, and enter the
+   configured code. If you change frontend build variables, redeploy the
+   frontend so Vite rebuilds the app.
+
+The demo login is deliberately disabled when `NODE_ENV=production`; the
+auth Dockerfile sets that default, so override it as shown only in a
+disposable test environment. Never use a fixed demo code for staff accounts
+or a production deployment. The frontend Railway domain is publicly
+reachable unless you separately restrict access. PDF to Word is disabled in
+this test setup; production PDF to Word should use the head-office deployment
+described in [`deploy/headoffice/README.md`](deploy/headoffice/README.md).
 
 ## How the pieces fit
 

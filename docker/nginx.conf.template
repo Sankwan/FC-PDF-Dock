@@ -16,6 +16,16 @@ server {
     # Same security headers as the head-office setup (CSP, HSTS, etc.).
     include /etc/nginx/security-headers.conf;
 
+    # Keep auth same-origin for the browser while the auth service stays
+    # private. Set AUTH_SERVICE_URL to the auth service's private Railway URL.
+    location /api/auth/ {
+        client_max_body_size 16k;
+        proxy_pass ${AUTH_SERVICE_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # The service worker and PWA manifest must always be revalidated —
     # caching them lets a stale worker keep serving an old build forever.
     location = /sw.js {
