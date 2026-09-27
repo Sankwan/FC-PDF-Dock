@@ -1,56 +1,49 @@
 /**
- * PDF -> Word is the one tool in this app that isn't purely static — it
- * calls a self-hosted backend (services/pdf-to-word/) because nothing
- * client-side can do this direction with real fidelity (see README.md's
- * "PDF to Word" section). Configure the deployment via env vars:
+ * PDF to Word is the one tool that isn't purely client-side: it calls the
+ * head-office pdf-to-word service (services/pdf-to-word/), because nothing
+ * that runs in a browser can rebuild an editable Word document from a PDF
+ * with real fidelity (see README.md, "PDF to Word").
  *
- *   VITE_PDF2WORD_API_URL — base URL of the pdf-to-word service, e.g.
- *     https://pdf2word.your-tunnel.example (must be HTTPS if the site
- *     itself is served over HTTPS, e.g. on Vercel — browsers block a
- *     plain-HTTP request from an HTTPS page as mixed content).
- *   VITE_PDF2WORD_API_KEY — the same shared secret set as API_KEY in the
- *     service's own .env.
- *
- * IMPORTANT: both of these end up in the public JS bundle — any
- * VITE_-prefixed variable is inlined into client-side code Vite ships to
- * every visitor's browser, readable by anyone who opens dev tools. The
- * API key is NOT a real secret once deployed this way; it only filters
- * out casual/automated hits against the backend's public URL. Real access
- * control has to happen at the network layer instead (Cloudflare Access
- * in front of the tunnel, or keeping the backend on a private
- * Tailscale-only address) — see services/pdf-to-word/SECURITY.md.
+ * The browser calls it on the same origin, at /api/pdf2word. nginx on the
+ * head-office server (deploy/headoffice/nginx.conf) then:
+ *   - checks the staff session cookie with the auth service,
+ *   - allows only head-office network addresses (HEADOFFICE_NETWORKS),
+ *   - adds the service's API key itself, server side.
+ * So no key or service address ships in the JavaScript bundle, and there is
+ * no cross-origin (CORS) setup to get wrong.
  */
+import { features } from "@/brand";
 
-const API_URL = (import.meta.env.VITE_PDF2WORD_API_URL as string | undefined)?.replace(/\/$/, "");
-const API_KEY = import.meta.env.VITE_PDF2WORD_API_KEY as string | undefined;
+const ENDPOINT = "/api/pdf2word/convert/pdf-to-word";
 
-export const isPdfToWordConfigured = (): boolean => Boolean(API_URL);
+export const isPdfToWordConfigured = (): boolean => features.pdfToWord;
 
 export interface PdfToWordProgress {
   loadedBytes: number;
   totalBytes: number;
 }
 
+export class PdfToWordError extends Error {
+  constructor(message: string, public kind: "offsite" | "signed-out" | "too-large" | "unreadable" | "unreachable" | "other") {
+    super(message);
+  }
+}
+
 /**
- * Uploads a PDF to the self-hosted conversion service and resolves the
- * converted .docx. Uses XMLHttpRequest (not fetch) specifically for
- * upload-progress events — `fetch` has no standard API for that.
+ * Uploads a PDF to the head-office conversion service and resolves the
+ * converted .docx. Uses XMLHttpRequest (not fetch) for upload progress.
  */
 export const convertPdfToWordRemote = (
   pdfFile: File,
   onProgress?: (p: PdfToWordProgress) => void
 ): Promise<File> => {
-  if (!API_URL) {
-    return Promise.reject(new Error("PDF to Word isn't configured for this deployment yet."));
-  }
-
   const formData = new FormData();
   formData.append("file", pdfFile);
 
   return new Promise<File>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_URL}/convert/pdf-to-word`);
-    if (API_KEY) xhr.setRequestHeader("X-API-Key", API_KEY);
+    xhr.open("POST", ENDPOINT);
+    xhr.withCredentials = true;
     xhr.responseType = "blob";
 
     xhr.upload.onprogress = (e) => {
@@ -58,25 +51,26 @@ export const convertPdfToWordRemote = (
     };
 
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
+      const type = xhr.getResponseHeader("Content-Type") || "";
+      if (xhr.status >= 200 && xhr.status < 300 && !type.includes("text/html")) {
         const outName = pdfFile.name.replace(/\.pdf$/i, "") + ".docx";
-        resolve(
-          new File([xhr.response], outName, {
-            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          })
-        );
+        resolve(new File([xhr.response], outName, { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+      } else if (xhr.status === 403) {
+        reject(new PdfToWordError("PDF to Word only works on the head-office network for now.", "offsite"));
       } else if (xhr.status === 401) {
-        reject(new Error("The conversion service rejected this request (bad or missing API key)."));
+        reject(new PdfToWordError("Your sign-in has expired. Sign out and sign in again, then retry.", "signed-out"));
       } else if (xhr.status === 413) {
-        reject(new Error("That file is too large for the conversion service's configured limit."));
+        reject(new PdfToWordError("This file is larger than the 50MB limit for PDF to Word. Try Split PDF first.", "too-large"));
       } else if (xhr.status === 422) {
-        reject(new Error("The conversion service couldn't process this PDF."));
+        reject(new PdfToWordError("The server couldn't read this PDF. It may be damaged.", "unreadable"));
+      } else if (xhr.status === 404 || xhr.status === 502 || xhr.status === 503 || xhr.status === 504 || type.includes("text/html")) {
+        reject(new PdfToWordError("The head-office conversion service isn't reachable from here.", "unreachable"));
       } else {
-        reject(new Error(`Conversion service returned an unexpected error (${xhr.status}).`));
+        reject(new PdfToWordError(`The conversion service returned an unexpected error (${xhr.status}).`, "other"));
       }
     };
     xhr.onerror = () => {
-      reject(new Error("Could not reach the conversion service — it may be offline, or blocked by a network/CORS setting."));
+      reject(new PdfToWordError("The head-office conversion service isn't reachable from here.", "unreachable"));
     };
 
     xhr.send(formData);

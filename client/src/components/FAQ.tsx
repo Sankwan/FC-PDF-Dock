@@ -3,69 +3,56 @@ import { Plus, Minus } from "lucide-react";
 
 const faqs = [
   {
-    id: "q1",
-    question: "Is this really free, and do I need an account?",
-    answer:
-      "Yes. No fees, no subscription, no account required. Every tool here is accessible without any payment or sign-up.",
-  },
-  {
-    id: "q2",
+    id: "upload",
     question: "Do my files get uploaded anywhere?",
     answer:
-      "No. All processing runs entirely in your browser with no internet connection required. Your files never leave your PC or phone device",
+      "No. Every tool except PDF to Word works entirely inside your browser, on your own computer or phone. PDF to Word sends the file to Head-Office server to convert and then deletes it straight away.",
   },
   {
-    id: "q3",
-    question: "What's the maximum file size?",
+    id: "size",
+    question: "What's the largest file I can use?",
     answer:
-      "It depends on your device's available memory. Most tools handle files up to 100MB comfortably. For best performance, files under 50MB work best.",
+      "It depends on your device's memory. Files up to 100MB work on most computers; on phones, files under 50MB are more reliable. Very large scans may take a minute or two.",
   },
   {
-    id: "q5",
-    question: "Which browsers are supported?",
+    id: "browsers",
+    question: "Which browsers work?",
     answer:
-      "All modern browsers: Chrome, Firefox, Safari, Edge. A few features may behave differently on older Safari versions — an up-to-date Chromium-based browser gives the most consistent results.",
+      "Current versions of Chrome, Edge, Firefox and Safari. For installing the app and scanning with a phone camera, use Chrome or Edge on Android and Windows, and Safari on iPhone.",
+  },
+  {
+    id: "account",
+    question: "What do you keep about me?",
+    answer:
+      "Only your official email address, so the tools stay for FC staff. PDFDock doesn't record which tools you use or what files you open.",
   },
 ];
 
 const FAQ = () => {
-  const [openId, setOpenId] = useState<string>("q1");
+  const [openId, setOpenId] = useState<string>("upload");
 
   return (
-    <section id="faq" className="py-14 bg-card">
+    <section id="faq" className="bg-background py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-0.5 bg-brand" />
-            <span className="text-brand text-xs font-semibold uppercase tracking-widest">FAQ</span>
-          </div>
-          <h2 className="text-3xl font-bold font-heading text-foreground">Frequently asked questions</h2>
-        </div>
-
-        <div className="max-w-3xl">
-          {faqs.map((faq) => (
-            <div
-              key={faq.id}
-              className={`border-b border-border ${openId === faq.id ? "border-l-2 border-l-brand" : ""}`}
-            >
-              <button
-                className="w-full flex items-center justify-between py-4 px-4 text-left hover:bg-muted transition-colors focus:outline-none"
-                onClick={() => setOpenId(openId === faq.id ? "" : faq.id)}
-              >
-                <span className={`text-sm font-semibold pr-4 ${openId === faq.id ? "text-brand" : "text-foreground"}`}>
-                  {faq.question}
-                </span>
-                <span className="flex-shrink-0 text-foreground">
-                  {openId === faq.id ? <Minus size={14} /> : <Plus size={14} />}
-                </span>
-              </button>
-              {openId === faq.id && (
-                <div className="px-4 pb-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">{faq.answer}</p>
-                </div>
-              )}
-            </div>
-          ))}
+        <h2 className="mb-6 text-lg font-bold text-foreground">Questions</h2>
+        <div className="max-w-3xl divide-y divide-border rounded-xl border border-border bg-card">
+          {faqs.map((faq) => {
+            const open = openId === faq.id;
+            return (
+              <div key={faq.id}>
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted/60"
+                  onClick={() => setOpenId(open ? "" : faq.id)}
+                >
+                  <span className={`text-sm font-semibold ${open ? "text-brand" : "text-foreground"}`}>{faq.question}</span>
+                  {open ? <Minus size={15} className="shrink-0" /> : <Plus size={15} className="shrink-0" />}
+                </button>
+                {open && <p className="px-5 pb-4 text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

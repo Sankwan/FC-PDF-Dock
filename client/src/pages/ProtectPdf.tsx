@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
 import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
 import { protectPdf } from "@/lib/pdfUtils";
-import { lockPdfWithPassword } from "@/lib/pdfEncryption";
+import { protectPdfWithQpdf, type Permission } from "@/lib/pdfEncryption";
 
 const ProtectPdf = () => {
   const { toast } = useToast();
@@ -24,11 +24,15 @@ const ProtectPdf = () => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   const [clearMetadata, setClearMetadata] = useState(true);
-  const [addPassword, setAddPassword] = useState(true);
+  const [addPassword, setAddPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [keyLength, setKeyLength] = useState<"128" | "256">("256");
+  const [restrict, setRestrict] = useState(false);
+  const [allow, setAllow] = useState<Permission[]>(["print"]);
+  const [permPassword, setPermPassword] = useState("");
+  const [permConfirm, setPermConfirm] = useState("");
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -41,11 +45,25 @@ const ProtectPdf = () => {
       ? "Passwords don't match."
       : null;
 
+  // The permissions password must differ from the open password: a reader
+  // opened with the permissions password ignores every restriction.
+  const permError = !restrict
+    ? null
+    : permPassword && permConfirm && permPassword !== permConfirm
+      ? "Passwords don't match."
+      : addPassword && permPassword && permPassword === password
+        ? "Use a different password from the one that opens the file."
+        : null;
+
   const canSubmit = useMemo(() => {
-    if (!clearMetadata && !addPassword) return false;
+    if (!clearMetadata && !addPassword && !restrict) return false;
     if (addPassword && (!password.trim() || password !== confirmPassword)) return false;
+    if (restrict && (!permPassword.trim() || permPassword !== permConfirm || (addPassword && permPassword === password))) return false;
     return true;
-  }, [clearMetadata, addPassword, password, confirmPassword]);
+  }, [clearMetadata, addPassword, password, confirmPassword, restrict, permPassword, permConfirm]);
+
+  const toggleAllow = (p: Permission, on: boolean) =>
+    setAllow((prev) => (on ? Array.from(new Set([...prev, p])) : prev.filter((x) => x !== p)));
 
   const handlePdfSelected = useCallback(async (files: File[]) => {
     if (files.length > 0 && files[0].type === "application/pdf") {
@@ -76,6 +94,8 @@ const ProtectPdf = () => {
     setProgress(0);
     setPassword("");
     setConfirmPassword("");
+    setPermPassword("");
+    setPermConfirm("");
   }, [pdfFile, vaultFiles, removeVaultFile]);
 
   const handleProcess = useCallback(async () => {
@@ -94,11 +114,24 @@ const ProtectPdf = () => {
         didParts.push("metadata removed");
       }
 
-      if (addPassword) {
+      if (addPassword || restrict) {
         setStatusText("Encrypting (first run loads the local encryption engine)...");
         setProgress(50);
-        working = await lockPdfWithPassword(working, { password, keyLength });
-        didParts.push(`password-locked (AES-${keyLength})`);
+        // Keep the original name so the output isn't "x_protected_protected.pdf"
+        // when metadata was also removed.
+        const input = working === pdfFile ? working : new File([working], pdfFile.name, { type: working.type });
+        working = await protectPdfWithQpdf(input, {
+          openPassword: addPassword ? password : "",
+          ownerPassword: restrict ? permPassword : password,
+          allow: restrict ? allow : ["print", "modify", "copy", "annotate", "forms"],
+          keyLength,
+        });
+        if (addPassword) didParts.push(`needs a password to open (AES-${keyLength})`);
+        if (restrict) {
+          const blocked = (["print", "copy", "modify"] as Permission[]).filter((p) => !allow.includes(p));
+          const words: Record<string, string> = { print: "printing", copy: "copying text", modify: "editing" };
+          didParts.push(blocked.length ? `${blocked.map((b) => words[b]).join(", ")} blocked` : "restrictions set");
+        }
       }
 
       setProgress(100);
@@ -112,7 +145,7 @@ const ProtectPdf = () => {
       setIsProcessing(false);
       setStatusText("");
     }
-  }, [pdfFile, canSubmit, clearMetadata, addPassword, password, keyLength, toast]);
+  }, [pdfFile, canSubmit, clearMetadata, addPassword, password, keyLength, restrict, permPassword, allow, toast]);
 
   const handleDownload = useCallback(() => {
     if (resultFile) downloadFile(resultFile, resultFile.name, "application/pdf");
@@ -128,7 +161,7 @@ const ProtectPdf = () => {
             <span className="text-brand text-xs font-semibold uppercase tracking-widest">Security</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">Protect PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Lock a PDF with a real password and strip identifying metadata</p>
+          <p className="text-muted-foreground text-sm mt-1">Require a password to open a PDF, restrict printing and editing, or strip identifying details</p>
         </div>
 
         <div className="max-w-2xl space-y-3">
@@ -229,7 +262,59 @@ const ProtectPdf = () => {
                         )}
                       </div>
 
-                      <div className="flex items-start gap-3 pt-1 border-t border-border/60">
+                      <div className="pt-4 border-t border-border/60">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id="restrict"
+                            checked={restrict}
+                            onCheckedChange={(c) => setRestrict(c as boolean)}
+                            className="mt-0.5 border-border data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor="restrict" className="text-sm font-medium text-foreground cursor-pointer">
+                              Restrict printing, copying and editing
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              For circulated notices and forms: people can read the file, but only do what you allow below. Adobe Reader, Edge, Chrome and most PDF apps respect this.
+                            </p>
+                          </div>
+                        </div>
+                        {restrict && (
+                          <div className="ml-7 mt-3 space-y-3">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {([
+                                ["print", "Allow printing"],
+                                ["copy", "Allow copying text"],
+                                ["forms", "Allow filling in forms"],
+                                ["annotate", "Allow comments"],
+                                ["modify", "Allow editing"],
+                              ] as [Permission, string][]).map(([p, label]) => (
+                                <label key={p} htmlFor={`allow-${p}`} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                                  <Checkbox id={`allow-${p}`} checked={allow.includes(p)} onCheckedChange={(c) => toggleAllow(p, c === true)}
+                                    className="border-border data-[state=checked]:bg-brand data-[state=checked]:border-brand" />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              <div>
+                                <Label htmlFor="perm-pwd" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Permissions password</Label>
+                                <Input id="perm-pwd" type={showPassword ? "text" : "password"} value={permPassword} onChange={(e) => setPermPassword(e.target.value)}
+                                  placeholder="Needed to lift restrictions" className="mt-1 border-border focus:border-brand focus:ring-0" />
+                              </div>
+                              <div>
+                                <Label htmlFor="perm-confirm" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Confirm</Label>
+                                <Input id="perm-confirm" type={showPassword ? "text" : "password"} value={permConfirm} onChange={(e) => setPermConfirm(e.target.value)}
+                                  placeholder="Type it again" className="mt-1 border-border focus:border-brand focus:ring-0" />
+                              </div>
+                            </div>
+                            {permError && <p className="text-xs text-destructive">{permError}</p>}
+                            <p className="text-xs text-muted-foreground">Keep this password with the file owner. Anyone who has it can remove the restrictions.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-start gap-3 pt-4 border-t border-border/60">
                         <Checkbox
                           id="clear-meta"
                           checked={clearMetadata}
@@ -272,7 +357,7 @@ const ProtectPdf = () => {
                       <Button
                         onClick={handleProcess}
                         disabled={!canSubmit}
-                        className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                        className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                       >
                         <ShieldCheck size={15} className="mr-2" /> Protect PDF
                       </Button>
@@ -280,7 +365,7 @@ const ProtectPdf = () => {
                     {resultFile && (
                       <Button
                         onClick={handleDownload}
-                        className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                        className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                       >
                         <Download size={15} className="mr-2" /> Download Protected PDF
                       </Button>
@@ -288,7 +373,7 @@ const ProtectPdf = () => {
                     <Button
                       variant="outline"
                       onClick={handleReset}
-                      className="border-border text-foreground hover:bg-background rounded-none"
+                      className="border-border text-foreground hover:bg-background rounded-md"
                     >
                       {resultFile ? "Protect Another" : "Reset"}
                     </Button>

@@ -19,7 +19,7 @@ import { brand } from "@/brand";
  */
 const TESSERACT_BASE = "/tesseract";
 
-const createLocalOcrWorker = (onProgress?: (status: string, progress: number) => void) =>
+export const createLocalOcrWorker = (onProgress?: (status: string, progress: number) => void) =>
   createWorker("eng", OEM.LSTM_ONLY, {
     workerPath: `${TESSERACT_BASE}/worker.min.js`,
     corePath: `${TESSERACT_BASE}/core/tesseract-core-simd-lstm.wasm.js`,

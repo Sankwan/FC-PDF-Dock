@@ -2,256 +2,273 @@ import { useState, useCallback } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
-import { FileDown, Download, Gauge } from "lucide-react";
+import { FileDown, Download, AlertTriangle, CheckCircle2, Type, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
 import { generateFilePreview, downloadFile, formatFileSize } from "@/lib/fileUtils";
 import { compressPdf } from "@/lib/pdfUtils";
+import { COMPRESS_PRESETS, compressPdfKeepText, type CompressLevel } from "@/lib/compress";
+
+type Method = "keep-text" | "flatten";
+
+interface Outcome {
+  file: File;
+  originalBytes: number;
+  outputBytes: number;
+  method: Method;
+  imagesRecompressed?: number;
+  unchanged?: boolean;
+  hadDigitalSignature?: boolean;
+}
 
 const CompressPdf = () => {
   const { toast } = useToast();
   const { files: vaultFiles, removeFile: removeVaultFile } = useFileVault();
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
-  const [compressionLevel, setCompressionLevel] = useState<"low" | "medium" | "high">("medium");
-  const [compressImages, setCompressImages] = useState(true);
+  const [method, setMethod] = useState<Method>("keep-text");
+  const [level, setLevel] = useState<CompressLevel>("balanced");
   const [removeMetadata, setRemoveMetadata] = useState(false);
-  const [optimizeFonts, setOptimizeFonts] = useState(true);
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [targetSizeKB, setTargetSizeKB] = useState("");
-  const [outputName, setOutputName] = useState("");
-  const [compressedPreviewUrl, setCompressedPreviewUrl] = useState("");
-  const [compressedPdf, setCompressedPdf] = useState<{ file: File; originalSize: string; compressedSize: string; savingsPercent: number } | null>(null);
+  const [stage, setStage] = useState("");
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
 
   const handlePdfSelected = useCallback(async (files: File[]) => {
-    if (files.length > 0 && files[0].type === "application/pdf") {
-      setPdfFile(files[0]);
-      setPdfPreviewUrl("");
-      setOutputName(`${files[0].name.replace(/\.pdf$/i, "")}_compressed.pdf`);
-      setIsLoadingPreview(true);
-      try {
-        const url = await generateFilePreview(files[0]);
-        setPdfPreviewUrl(url);
-        setShowOptions(true);
-        setIsCompressing(false);
-        setProgress(0);
-        setCompressedPdf(null);
-      } catch (error) {
-        console.error("PDF preview failed", error);
-        toast({ variant: "destructive", title: "Preview failed", description: error instanceof Error ? error.message : "The PDF could not be rendered." });
-      } finally {
-        setIsLoadingPreview(false);
-      }
+    const f = files[0];
+    if (!f) return;
+    setPdfFile(f);
+    setOutcome(null);
+    setPdfPreviewUrl("");
+    setIsLoadingPreview(true);
+    try {
+      setPdfPreviewUrl(await generateFilePreview(f));
+    } catch {
+      // preview is optional
+    } finally {
+      setIsLoadingPreview(false);
     }
-  }, [toast]);
+  }, []);
 
   const handleReset = useCallback(() => {
-    // Also drop this file from the shared workspace vault — otherwise a
-    // fresh FileUpload silently re-adopts the file we just finished with.
-    vaultFiles.filter(vf => vf.file === pdfFile).forEach(vf => removeVaultFile(vf.id));
+    vaultFiles.filter((vf) => vf.file === pdfFile).forEach((vf) => removeVaultFile(vf.id));
     setPdfFile(null);
     setPdfPreviewUrl("");
-    setIsLoadingPreview(false);
-    setShowOptions(false);
-    setIsCompressing(false);
+    setOutcome(null);
     setProgress(0);
-    setCompressedPdf(null);
-    setCompressedPreviewUrl("");
-    setTargetSizeKB("");
-    setOutputName("");
-    setCompressionLevel("medium");
-    setCompressImages(true);
-    setRemoveMetadata(false);
-    setOptimizeFonts(true);
   }, [pdfFile, vaultFiles, removeVaultFile]);
 
   const handleCompress = useCallback(async () => {
     if (!pdfFile) return;
-    setIsCompressing(true);
+    setBusy(true);
     setProgress(0);
+    setOutcome(null);
     try {
-      const interval = setInterval(() => setProgress(p => Math.min(p + Math.random() * 5, 90)), 200);
-      const target = Number(targetSizeKB);
-      const compressed = await compressPdf(pdfFile, {
-        quality: compressionLevel,
-        removeMetadata,
-        targetSizeKB: Number.isFinite(target) && target > 0 ? target : undefined,
-        onProgress: (done, total) => setProgress(Math.max(5, Math.round((done / total) * 95))),
-      });
-      clearInterval(interval);
-      setProgress(100);
-      const savings = Math.round((1 - compressed.size / pdfFile.size) * 100);
-      setCompressedPdf({ file: compressed, originalSize: formatFileSize(pdfFile.size), compressedSize: formatFileSize(compressed.size), savingsPercent: savings });
-      try {
-        setCompressedPreviewUrl(await generateFilePreview(compressed));
-      } catch {
-        setCompressedPreviewUrl("");
+      if (method === "keep-text") {
+        const r = await compressPdfKeepText(pdfFile, {
+          level,
+          removeMetadata,
+          onProgress: (done, total, s) => {
+            setStage(s);
+            setProgress(total ? Math.round((done / total) * 90) : 90);
+          },
+        });
+        setOutcome({ ...r, method });
+      } else {
+        const quality = level === "light" ? "low" : level === "balanced" ? "medium" : "high";
+        setStage("Redrawing pages");
+        const file = await compressPdf(pdfFile, {
+          quality,
+          removeMetadata,
+          onProgress: (done, total) => setProgress(Math.round((done / total) * 95)),
+        });
+        setOutcome({ file, originalBytes: pdfFile.size, outputBytes: file.size, method, unchanged: file.size >= pdfFile.size });
       }
-      toast({ title: "Compression complete", description: `Reduced by ${savings}%` });
-    } catch {
-      setIsCompressing(false);
-      toast({ variant: "destructive", title: "Compression failed" });
+      setProgress(100);
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Couldn't compress this PDF", description: err instanceof Error ? err.message : "Try a different file." });
+    } finally {
+      setBusy(false);
+      setStage("");
     }
-  }, [pdfFile, compressionLevel, removeMetadata, targetSizeKB, toast]);
+  }, [pdfFile, method, level, removeMetadata, toast]);
 
-  const compressionOptions = [
-    { value: "low", label: "Low", desc: "High quality, minimal compression" },
-    { value: "medium", label: "Medium", desc: "Balanced quality and size" },
-    { value: "high", label: "High", desc: "Smaller file, lower quality" },
-  ] as const;
+  const saved = outcome ? Math.max(0, Math.round((1 - outcome.outputBytes / outcome.originalBytes) * 100)) : 0;
+
+  const methodCard = (value: Method, icon: React.ReactNode, title: string, body: string, badge?: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={method === value}
+      onClick={() => setMethod(value)}
+      className={`flex w-full gap-3 rounded-lg border p-4 text-left transition-colors ${
+        method === value ? "border-brand bg-brand-tint" : "border-border bg-card hover:border-brand/50"
+      }`}
+    >
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${method === value ? "bg-brand text-white" : "bg-muted text-muted-foreground"}`}>{icon}</span>
+      <span className="min-w-0">
+        <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+          {title}
+          {badge && <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">{badge}</span>}
+        </span>
+        <span className="mt-1 block text-sm text-muted-foreground">{body}</span>
+      </span>
+    </button>
+  );
 
   return (
-    <section className="min-h-[70vh] bg-background py-8 sm:py-10">
+    <section className="py-10 bg-background min-h-[60vh]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <BackToTools />
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-4 h-0.5 bg-brand" />
-            <span className="text-brand text-xs font-semibold uppercase tracking-widest">Optimize</span>
+            <span className="text-brand text-xs font-semibold uppercase tracking-widest">Reduce size</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">Compress PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Reduce PDF file size while preserving readability</p>
+          <p className="text-muted-foreground text-sm mt-1">Make PDFs small enough for email and WhatsApp while keeping text sharp and searchable.</p>
         </div>
 
-        <div className="max-w-4xl rounded-[28px] border border-white/80 bg-card/65 shadow-[0_30px_90px_-60px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+        <div className="max-w-2xl bg-card/90 border border-border rounded-xl shadow-sm">
           <div className="p-6">
             {!pdfFile ? (
               <FileUpload
                 accept=".pdf,application/pdf"
-                maxSizeInMB={100}
-                multiple={false}
+                maxSizeInMB={150}
                 onFilesSelected={handlePdfSelected}
-                title="Upload PDF to Compress"
+                title="Upload PDF"
                 description="Drag & drop or click to browse"
                 buttonText="Select PDF"
                 icon={<FileDown size={36} />}
               />
             ) : (
               <>
-                <FilePreview files={[pdfFile]} fileType="pdf" previewUrls={pdfPreviewUrl ? [pdfPreviewUrl] : []} isLoadingPreview={isLoadingPreview} onRemoveAll={handleReset} className="mb-5" />
+                <FilePreview files={[pdfFile]} fileType="pdf" previewUrls={pdfPreviewUrl ? [pdfPreviewUrl] : []} isLoadingPreview={isLoadingPreview} onRemoveAll={handleReset} />
 
-                {showOptions && !compressedPdf && !isCompressing && (
-                  <div className="border border-border p-5 mb-5 bg-muted">
-                    <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Compression Options</h4>
-                    <div className="mb-5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-3">Compression Level</Label>
-                      <RadioGroup value={compressionLevel} onValueChange={(v: "low" | "medium" | "high") => setCompressionLevel(v)} className="grid grid-cols-3 gap-3">
-                        {compressionOptions.map(opt => (
-                          <div key={opt.value}>
-                            <RadioGroupItem value={opt.value} id={`${opt.value}-compression`} className="peer hidden" />
-                            <Label
-                              htmlFor={`${opt.value}-compression`}
-                              className={`border p-3 text-center block cursor-pointer transition-colors text-sm ${
-                                compressionLevel === opt.value
-                                  ? "border-brand bg-brand-tint text-brand"
-                                  : "border-border bg-card text-muted-foreground hover:border-brand hover:bg-brand-tint"
-                              }`}
-                            >
-                              <div className="font-semibold mb-0.5">{opt.label}</div>
-                              <div className="text-[10px] leading-tight opacity-75">{opt.desc}</div>
-                            </Label>
-                          </div>
+                {!outcome && !busy && (
+                  <div className="space-y-6 mb-6">
+                    <fieldset>
+                      <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Method</legend>
+                      <div role="radiogroup" className="grid gap-3">
+                        {methodCard("keep-text", <Type size={17} />, "Keep text", "Shrinks the pictures inside the PDF and tidies its structure. Text stays selectable and searchable, and small print stays sharp.", "Recommended")}
+                        {methodCard("flatten", <ImageIcon size={17} />, "Flatten to images", "Turns every page into a picture. Use only for scanned documents that are still too big after Keep text.")}
+                      </div>
+                      {method === "flatten" && (
+                        <div className="mt-3 flex gap-2.5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                          <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+                          <span>Text in the result can't be searched, selected or copied, and fine print may blur. Don't use this for letters, permits or reports that others need to search.</span>
+                        </div>
+                      )}
+                    </fieldset>
+
+                    <fieldset>
+                      <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Strength</legend>
+                      <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {(Object.keys(COMPRESS_PRESETS) as CompressLevel[]).map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            role="radio"
+                            aria-checked={level === key}
+                            onClick={() => setLevel(key)}
+                            className={`rounded-lg border p-3 text-left transition-colors ${level === key ? "border-brand bg-brand-tint" : "border-border hover:border-brand/50"}`}
+                          >
+                            <span className="block text-sm font-semibold text-foreground">{COMPRESS_PRESETS[key].label}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">{COMPRESS_PRESETS[key].hint}</span>
+                          </button>
                         ))}
-                      </RadioGroup>
-                    </div>
-                    <div className="space-y-2.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Advanced</Label>
-                      {[
-                        { id: "compress-images", state: compressImages, setter: setCompressImages, label: "Compress embedded images" },
-                        { id: "remove-metadata", state: removeMetadata, setter: setRemoveMetadata, label: "Remove document metadata" },
-                        { id: "optimize-fonts", state: optimizeFonts, setter: setOptimizeFonts, label: "Optimize fonts" },
-                      ].map(item => (
-                        <div key={item.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={item.id}
-                            checked={item.state}
-                            onCheckedChange={v => item.setter(v as boolean)}
-                            className="border-border data-[state=checked]:bg-brand data-[state=checked]:border-brand"
-                          />
-                          <Label htmlFor={item.id} className="text-sm text-muted-foreground cursor-pointer">{item.label}</Label>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-5 grid gap-4 border-t border-black/[0.06] pt-5 sm:grid-cols-2">
-                      <div>
-                        <Label htmlFor="target-size" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Target size (optional)</Label>
-                        <div className="relative mt-1.5">
-                          <Gauge size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                          <input id="target-size" inputMode="numeric" min="1" value={targetSizeKB} onChange={(event) => setTargetSizeKB(event.target.value.replace(/\D/g, ""))} placeholder="e.g. 50" className="h-10 w-full rounded-xl border border-border bg-card/80 pl-9 pr-12 text-sm outline-none transition focus:border-brand" />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">KB</span>
-                        </div>
-                        <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">Best-effort target; complex pages may need more space to stay readable.</p>
                       </div>
-                      <div>
-                        <Label htmlFor="output-name" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Output name</Label>
-                        <input id="output-name" value={outputName} onChange={(event) => setOutputName(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-border bg-card/80 px-3 text-sm outline-none transition focus:border-brand" />
-                        <p className="mt-1.5 text-[11px] text-muted-foreground">Rename the PDF before downloading it.</p>
-                      </div>
+                    </fieldset>
+
+                    <div className="flex items-center gap-2.5">
+                      <Checkbox id="remove-metadata" checked={removeMetadata} onCheckedChange={(v) => setRemoveMetadata(v === true)} />
+                      <Label htmlFor="remove-metadata" className="text-sm text-muted-foreground cursor-pointer">Remove author, title and keywords from the file</Label>
                     </div>
                   </div>
                 )}
 
-                {isCompressing && !compressedPdf && (
-                  <div className="mb-5">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1"><span>Compressing...</span><span>{Math.round(progress)}%</span></div>
+                {busy && (
+                  <div className="mb-6">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>{stage || "Working"}…</span>
+                      <span>{progress}%</span>
+                    </div>
                     <Progress value={progress} className="h-1.5" />
+                    <p className="mt-2 text-xs text-muted-foreground">Everything happens on this device. Large files can take a minute.</p>
                   </div>
                 )}
 
-                {compressedPdf && (
-                  <div>
-                    <Alert className="bg-background border border-foreground mb-5">
-                      <AlertDescription className="flex items-center gap-2 text-foreground text-sm">
-                        <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span><strong>Done.</strong> Reduced by {compressedPdf.savingsPercent}%</span>
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="border border-border mb-5 grid grid-cols-2 gap-px bg-border">
-                      <div className="bg-muted p-4 text-center">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Original</div>
-                        <div className="text-xl font-bold text-foreground">{compressedPdf.originalSize}</div>
+                {outcome && (
+                  <div className="mb-6 rounded-lg border border-border p-4">
+                    {outcome.unchanged ? (
+                      <div className="flex gap-3">
+                        <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-brand" />
+                        <div className="text-sm">
+                          <p className="font-semibold text-foreground">This PDF is already as small as it can be with {COMPRESS_PRESETS[level].label.toLowerCase()} settings.</p>
+                          <p className="mt-1 text-muted-foreground">
+                            {method === "keep-text" ? "Try Strong, or Flatten to images if it's a scanned document." : "It's probably mostly text already."}
+                          </p>
+                        </div>
                       </div>
-                      <div className="bg-background p-4 text-center">
-                        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Compressed</div>
-                        <div className="text-xl font-bold text-brand">{compressedPdf.compressedSize}</div>
-                      </div>
-                    </div>
-
-                    <FilePreview files={[compressedPdf.file]} fileType="pdf" previewUrls={compressedPreviewUrl ? [compressedPreviewUrl] : []} showControls={false} className="mb-5" />
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => downloadFile(compressedPdf.file, outputName.trim() || compressedPdf.file.name, "application/pdf")} className="rounded-xl bg-brand text-white hover:bg-brand-dark font-semibold">
-                        <Download size={15} className="mr-2" /> Download Compressed
-                      </Button>
-                      <Button variant="outline" onClick={handleReset} className="rounded-xl border-border text-foreground hover:bg-background">
-                        Compress Another
-                      </Button>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <div className="text-xs text-muted-foreground">Before</div>
+                            <div className="font-semibold tabular-nums text-foreground">{formatFileSize(outcome.originalBytes)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">After</div>
+                            <div className="font-semibold tabular-nums text-foreground">{formatFileSize(outcome.outputBytes)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">Saved</div>
+                            <div className="font-bold tabular-nums text-brand">{saved}%</div>
+                          </div>
+                        </div>
+                        <p className="mt-4 flex items-start gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
+                          <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${outcome.method === "keep-text" ? "text-brand" : "text-muted-foreground"}`} />
+                          {outcome.method === "keep-text"
+                            ? `Text is still selectable and searchable. ${outcome.imagesRecompressed ?? 0} image${outcome.imagesRecompressed === 1 ? "" : "s"} recompressed.`
+                            : "Pages are now images: text is no longer selectable."}
+                        </p>
+                      </>
+                    )}
+                    {outcome.hadDigitalSignature && (
+                      <p className="mt-3 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+                        <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                        This PDF had a certificate-based digital signature. Any change to the file, including compression, makes that signature show as invalid. Keep the original for the record.
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {showOptions && !compressedPdf && !isCompressing && (
-                  <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleCompress} disabled={!pdfFile} className="rounded-xl bg-brand text-white hover:bg-brand-dark font-semibold">
-                      Compress PDF
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {!outcome && !busy && (
+                    <Button onClick={handleCompress} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
+                      <FileDown size={15} className="mr-1" /> Compress PDF
                     </Button>
-                    <Button variant="outline" onClick={handleReset} className="rounded-xl border-border text-foreground hover:bg-background">
-                      Reset
+                  )}
+                  {outcome && !outcome.unchanged && (
+                    <Button onClick={() => downloadFile(outcome.file, outcome.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
+                      <Download size={15} className="mr-1" /> Download PDF
                     </Button>
-                  </div>
-                )}
+                  )}
+                  {outcome && (
+                    <Button variant="outline" onClick={() => setOutcome(null)} className="rounded-md">
+                      Try other settings
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={handleReset} className="rounded-md">
+                    {outcome ? "Compress another" : "Reset"}
+                  </Button>
+                </div>
               </>
             )}
           </div>

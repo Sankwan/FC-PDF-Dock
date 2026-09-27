@@ -230,10 +230,10 @@ const PdfToImage = () => {
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={handleDownloadAll} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                      <Button onClick={handleDownloadAll} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                         <Download size={15} className="mr-2" /> Download All (.zip)
                       </Button>
-                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                         Convert Another
                       </Button>
                     </div>
@@ -242,10 +242,10 @@ const PdfToImage = () => {
 
                 {convertingStatus === "idle" && (
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button onClick={handleConvert} disabled={!pdfFile} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                    <Button onClick={handleConvert} disabled={!pdfFile} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       Convert to Images
                     </Button>
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset
                     </Button>
                   </div>

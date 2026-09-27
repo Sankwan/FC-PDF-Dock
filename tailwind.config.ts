@@ -5,6 +5,11 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        // Self-hosted (npm @fontsource-variable/public-sans), never Google Fonts.
+        sans: ['"Public Sans Variable"', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        heading: ['"Public Sans Variable"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -41,6 +46,7 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        chrome: "hsl(var(--chrome))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -50,6 +56,7 @@ export default {
           DEFAULT: "hsl(var(--brand))",
           dark: "hsl(var(--brand-dark))",
           tint: "hsl(var(--brand-tint))",
+          logo: "hsl(var(--brand-logo))",
         },
       },
       keyframes: {

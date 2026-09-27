@@ -14,6 +14,8 @@ import { useFileVault } from "@/context/FileVault";
 import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
 import { addWatermark } from "@/lib/pdfUtils";
 
+const PRESETS = ["CONFIDENTIAL", "DRAFT", "FOR OFFICIAL USE ONLY", "CERTIFIED TRUE COPY", "COPY", "CANCELLED", "FORESTRY COMMISSION"];
+
 const WatermarkPdf = () => {
   const { toast } = useToast();
   const { files: vaultFiles, removeFile: removeVaultFile } = useFileVault();
@@ -97,7 +99,7 @@ const WatermarkPdf = () => {
             <span className="text-brand text-xs font-semibold uppercase tracking-widest">Annotate</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">Watermark PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Add diagonal text watermarks to every page of your PDF</p>
+          <p className="text-muted-foreground text-sm mt-1">Mark every page CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY or your own text</p>
         </div>
 
         <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
@@ -136,6 +138,21 @@ const WatermarkPdf = () => {
                           placeholder="e.g. CONFIDENTIAL, DRAFT, SAMPLE"
                           className="mt-1 border-border focus:border-brand focus:ring-0"
                         />
+                        <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Common watermarks">
+                          {PRESETS.map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setWatermarkText(p)}
+                              aria-pressed={watermarkText === p}
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors ${
+                                watermarkText === p ? "border-brand bg-brand text-white" : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div>
@@ -199,7 +216,7 @@ const WatermarkPdf = () => {
                     <Button
                       onClick={handleProcess}
                       disabled={!watermarkText.trim()}
-                      className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                      className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                     >
                       <Stamp size={15} className="mr-2" /> Add Watermark
                     </Button>
@@ -207,7 +224,7 @@ const WatermarkPdf = () => {
                   {resultFile && (
                     <Button
                       onClick={handleDownload}
-                      className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                      className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                     >
                       <Download size={15} className="mr-2" /> Download PDF
                     </Button>
@@ -215,7 +232,7 @@ const WatermarkPdf = () => {
                   <Button
                     variant="outline"
                     onClick={handleReset}
-                    className="border-border text-foreground hover:bg-background rounded-none"
+                    className="border-border text-foreground hover:bg-background rounded-md"
                   >
                     {resultFile ? "Watermark Another" : "Reset"}
                   </Button>

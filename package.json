@@ -1,5 +1,5 @@
 {
-  "name": "local-pdf-toolkit",
+  "name": "pdfdock-fc",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -8,9 +8,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "tsc"
+    "check": "tsc",
+    "assets:fc": "node scripts/build-fc-assets.mjs",
+    "vendor:opencv": "node -e \"require('fs').copyFileSync('node_modules/@techstark/opencv-js/dist/opencv.js','client/public/opencv/opencv.js')\""
   },
   "dependencies": {
+    "@fontsource-variable/public-sans": "^5.3.0",
     "@neslinesli93/qpdf-wasm": "^0.3.0",
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.23",
@@ -21,9 +24,11 @@
     "@radix-ui/react-slider": "^1.2.1",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.2",
+    "@techstark/opencv-js": "^5.0.0-release.1",
     "@tesseract.js-data/eng": "^1.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "docx": "^9.7.2",
     "jspdf": "^3.0.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
@@ -41,6 +46,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",

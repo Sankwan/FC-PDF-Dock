@@ -1,13 +1,23 @@
 /**
- * Single source of truth for brand strings shown inside the app.
- * The values themselves come from .env (see .env.example) so a
- * sister-company build only needs its own .env.<company> file —
- * nothing in the component code should change.
+ * Single source of truth for brand strings shown inside the app. Values
+ * come from .env (see .env.example); the defaults below are the
+ * Forestry Commission build.
  */
+const env = import.meta.env;
+
 export const brand = {
-  name: import.meta.env.VITE_APP_NAME || "PDFDock",
-  shortName: import.meta.env.VITE_APP_SHORT_NAME || "PDFDock",
+  name: env.VITE_APP_NAME || "PDFDock",
+  shortName: env.VITE_APP_SHORT_NAME || "FC PDFDock",
+  orgName: env.VITE_ORG_NAME || "Forestry Commission",
   description:
-    import.meta.env.VITE_APP_DESCRIPTION ||
-    "Merge, split, compress, and convert PDFs entirely in your browser.",
+    env.VITE_APP_DESCRIPTION ||
+    "Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded.",
+  logo: "/fc/fc-logo.png",
+  mark: "/fc/fc-mark.png",
+};
+
+export const features = {
+  authRequired: (env.VITE_AUTH_REQUIRED ?? "true") !== "false",
+  staffEmailDomain: (env.VITE_STAFF_EMAIL_DOMAIN || "fc.gov.gh").toLowerCase(),
+  pdfToWord: (env.VITE_PDF2WORD_ENABLED ?? "true") !== "false",
 };

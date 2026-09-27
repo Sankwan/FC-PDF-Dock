@@ -8,79 +8,72 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig(({ mode }) => {
-  // Loads .env, .env.<mode> (e.g. .env.acme, .env.acme-logistics) so each
-  // sister company can ship its own name/theme with `vite build --mode acme`.
   const env = loadEnv(mode, process.cwd(), "VITE_");
-  const appName = env.VITE_APP_NAME || "Local PDF Toolkit";
-  const appShortName = env.VITE_APP_SHORT_NAME || "PDF Toolkit";
+  const appName = env.VITE_APP_NAME || "PDFDock";
+  const orgName = env.VITE_ORG_NAME || "Forestry Commission";
+  const appShortName = env.VITE_APP_SHORT_NAME || "FC PDFDock";
   const appDescription =
     env.VITE_APP_DESCRIPTION ||
-    "Merge, split, compress, and convert PDFs entirely in your browser. Nothing you open here is ever uploaded.";
-  // Keep in sync with --brand in client/src/index.css
-  const themeColor = env.VITE_THEME_COLOR || "#0d6e5c";
+    "Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded.";
+  // Keep in sync with --chrome in client/src/index.css
+  const themeColor = env.VITE_THEME_COLOR || "#0E2516";
+
+  // Local development only: where services/auth and services/pdf-to-word
+  // listen, so the same-origin /api/* paths used in production also work
+  // under `npm run dev`. In production nginx does this (deploy/headoffice/).
+  const devAuthTarget = process.env.DEV_AUTH_URL || "http://127.0.0.1:8100";
+  const devPdf2WordTarget = process.env.DEV_PDF2WORD_URL || "http://127.0.0.1:8000";
 
   return {
     plugins: [
       react(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["favicon.svg"],
+        includeAssets: ["icons/favicon-64.png", "icons/apple-touch-icon.png", "fc/fc-logo.png", "fc/fc-mark.png"],
         workbox: {
-          // pdf.worker.min.mjs ships as .mjs — not in the default glob list.
-          // Deliberately NOT precaching wasm/gz here: the OCR engine
-          // (~9MB, public/tesseract/) and the office2pdf Word-to-PDF engine
-          // (~47MB, client/src/lib/office2pdf-wasm/) are both big enough
-          // that forcing every visitor to download them on first install
-          // would be a bad trade for the ~90% of visits that touch neither
-          // tool. Both are runtime-cached instead — fetched (and cached for
-          // offline reuse) only the first time their tool is actually used.
+          // pdf.worker.min.mjs ships as .mjs, which isn't in the default glob
+          // list. Large engines (OCR ~9MB, Word to PDF ~47MB, scanner ~13MB)
+          // are NOT precached: they are runtime-cached the first time a tool
+          // uses them, or all at once when staff press "Download tools for
+          // offline use" (client/src/lib/offlinePrep.ts).
           globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}"],
-          // tesseract/'s own glue JS (tesseract-core-simd-lstm.wasm.js,
-          // ~3.9MB) would otherwise match the "js" pattern above and get
-          // swept into the precache manifest despite the intent above —
-          // it's covered by the /tesseract/ runtimeCaching rule instead.
-          globIgnores: ["**/tesseract/**"],
-          // Google Fonts aren't part of the build output, so precaching can't
-          // reach them — cache them at runtime instead, first hit onward.
+          // These folders' own JS glue would otherwise match "js" above.
+          globIgnores: ["**/tesseract/**", "**/opencv/**", "**/fc/fc-logo-src.jpg"],
+          // Sign-in and PDF to Word must always reach the server, never an
+          // offline fallback page.
+          navigateFallbackDenylist: [/^\/api\//],
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: "CacheFirst",
-              options: { cacheName: "google-fonts-stylesheets" },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: "CacheFirst",
-              options: {
-                cacheName: "google-fonts-webfonts",
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              },
-            },
-            {
               // Local OCR engine (worker + WASM core + language data),
-              // served from public/tesseract/ — same origin, not a CDN.
+              // served from public/tesseract/: same origin, not a CDN.
               urlPattern: /\/tesseract\//,
               handler: "CacheFirst",
               options: { cacheName: "ocr-engine" },
             },
             {
-              // Local PDF-encryption engine (qpdf, C++/WASM), served from
-              // public/qpdf/ — same origin, not a CDN.
+              // Local PDF encryption engine (qpdf, C++/WASM), public/qpdf/.
               urlPattern: /\/qpdf\//,
               handler: "CacheFirst",
               options: { cacheName: "qpdf-engine" },
             },
             {
-              // Local Word/Office-to-PDF engine (office2pdf, Rust/WASM),
-              // emitted by Vite from client/src/lib/office2pdf-wasm/.
+              // Local Word-to-PDF engine (office2pdf, Rust/WASM), emitted by
+              // Vite from client/src/lib/office2pdf-wasm/.
               urlPattern: /office2pdf.*\.wasm$/,
               handler: "CacheFirst",
               options: { cacheName: "office2pdf-engine" },
             },
+            {
+              // Document scanner engine (OpenCV.js), public/opencv/.
+              urlPattern: /\/opencv\//,
+              handler: "CacheFirst",
+              options: { cacheName: "scanner-engine" },
+            },
           ],
         },
         manifest: {
-          name: appName,
+          name: `${appName} · ${orgName}`,
           short_name: appShortName,
           description: appDescription,
           theme_color: themeColor,
@@ -88,8 +81,9 @@ export default defineConfig(({ mode }) => {
           display: "standalone",
           start_url: "/",
           icons: [
-            { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-            { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+            { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
           ],
         },
       }),
@@ -101,9 +95,19 @@ export default defineConfig(({ mode }) => {
     },
     root: path.resolve(__dirname, "client"),
     // .env files live at the project root, not under client/ (which is
-    // `root` above) — without this, Vite looks for them in client/ and
+    // `root` above); without this, Vite looks for them in client/ and
     // silently leaves %VITE_...% placeholders in index.html unreplaced.
     envDir: path.resolve(__dirname),
+    server: {
+      proxy: {
+        "/api/auth": { target: devAuthTarget },
+        "/api/pdf2word": {
+          target: devPdf2WordTarget,
+          rewrite: (p) => p.replace(/^\/api\/pdf2word/, ""),
+          headers: { "X-API-Key": process.env.DEV_PDF2WORD_API_KEY || "" },
+        },
+      },
+    },
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,

@@ -156,11 +156,11 @@ const WordToPdf = () => {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         onClick={() => downloadFile(resultPdf, resultPdf.name, "application/pdf")}
-                        className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                        className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                       >
                         <Download size={15} className="mr-2" /> Download PDF
                       </Button>
-                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                         Convert Another
                       </Button>
                     </div>
@@ -170,11 +170,11 @@ const WordToPdf = () => {
                     <div className="flex flex-col sm:flex-row gap-3 mt-2">
                       <Button
                         onClick={handleConvert}
-                        className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                        className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                       >
                         Convert to PDF
                       </Button>
-                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                         Reset
                       </Button>
                     </div>

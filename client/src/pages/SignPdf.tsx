@@ -12,6 +12,7 @@ import { useFileVault } from "@/context/FileVault";
 import { downloadFile } from "@/lib/fileUtils";
 import { loadPdfDocument, renderPdfPageToCanvas } from "@/lib/pdfjs";
 import { signPdf, type SignaturePlacement } from "@/lib/pdfUtils";
+import SignatureCheck from "@/components/SignatureCheck";
 
 interface PlacedSignature extends SignaturePlacement {
   id: string;
@@ -26,7 +27,7 @@ const SignaturePad = ({
   const drawing = useRef(false);
   const strokes = useRef<{ x: number; y: number }[][]>([]);
   const [penWidth, setPenWidth] = useState(3);
-  const [penColor, setPenColor] = useState("#0A0A0A");
+  const [penColor, setPenColor] = useState("#10213f");
   const [isEmpty, setIsEmpty] = useState(true);
 
   const redraw = useCallback(() => {
@@ -335,7 +336,8 @@ const SignPdf = () => {
         </div>
 
         {!pdfFile ? (
-          <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl p-6 shadow-sm">
+          <div className="max-w-2xl space-y-4">
+          <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-6 shadow-sm">
             <FileUpload
               accept=".pdf,application/pdf"
               maxSizeInMB={50}
@@ -359,11 +361,13 @@ const SignPdf = () => {
               </div>
             )}
           </div>
+          <SignatureCheck />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-4 items-start">
             {/* Page canvas */}
             <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="bg-[#0A0A0A] px-4 py-2 flex items-center justify-between gap-2 flex-wrap">
+              <div className="bg-chrome px-4 py-2 flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-white text-xs font-semibold uppercase tracking-widest truncate max-w-[55%]">{pdfFile.name}</span>
                 <div className="flex items-center gap-2">
                   <button
@@ -413,7 +417,7 @@ const SignPdf = () => {
                         type="button"
                         onPointerDown={(e) => { e.stopPropagation(); }}
                         onClick={() => setPlacements((prev) => prev.filter((x) => x.id !== p.id))}
-                        className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center"
+                        className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-chrome text-white flex items-center justify-center"
                         aria-label="Remove signature"
                       >
                         <X size={11} />
@@ -453,8 +457,10 @@ const SignPdf = () => {
 
               <Alert className="bg-card/80 border border-border rounded-xl">
                 <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-                  Drag the signature to move it, pull the red corner to resize. Everything stays in your browser —
-                  nothing is uploaded. This adds a visible signature image, not a cryptographic digital signature.
+                  Drag the signature to move it, and pull the green corner to resize it. Nothing is uploaded.
+                  The signed file records the date and time it was signed, so anyone can later check it with
+                  "Check a signed PDF" and see if it was changed afterwards. This is a visible signature, not a
+                  certificate-based digital signature.
                 </AlertDescription>
               </Alert>
 
@@ -462,7 +468,7 @@ const SignPdf = () => {
                 <Button
                   onClick={handleExport}
                   disabled={placements.length === 0 || isSaving}
-                  className="bg-[#0A0A0A] text-white hover:bg-[#222] rounded-lg text-sm font-semibold"
+                  className="bg-brand text-white hover:bg-brand-dark rounded-lg text-sm font-semibold"
                 >
                   <Download size={14} className="mr-1.5" />
                   {isSaving ? "Preparing…" : `Download signed PDF (${placements.length})`}

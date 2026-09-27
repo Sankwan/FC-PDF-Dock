@@ -165,7 +165,7 @@ const MergePdf = () => {
                               </div>
                               <span className="text-sm text-foreground truncate max-w-[220px]">{file.name}</span>
                             </div>
-                            <button onClick={() => handleRemovePdf(i)} className="text-muted-foreground hover:text-brand transition-colors">
+                            <button type="button" onClick={() => handleRemovePdf(i)} aria-label={`Remove ${file.name}`} className="text-muted-foreground hover:text-brand transition-colors">
                               <X size={14} />
                             </button>
                           </div>
@@ -196,10 +196,10 @@ const MergePdf = () => {
                       </AlertDescription>
                     </Alert>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => downloadFile(mergedPdf, mergedPdf.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                      <Button onClick={() => downloadFile(mergedPdf, mergedPdf.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                         <Download size={15} className="mr-2" /> Download Merged PDF
                       </Button>
-                      <Button variant="outline" onClick={handleClearPdfs} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleClearPdfs} className="border-border text-foreground hover:bg-background rounded-md">
                         Merge More
                       </Button>
                     </div>
@@ -208,10 +208,10 @@ const MergePdf = () => {
 
                 {showOptions && !mergedPdf && !isMerging && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleMergePdfs} disabled={pdfFiles.length < 2} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                    <Button onClick={handleMergePdfs} disabled={pdfFiles.length < 2} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       Merge PDFs
                     </Button>
-                    <Button variant="outline" onClick={handleClearPdfs} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleClearPdfs} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset
                     </Button>
                   </div>

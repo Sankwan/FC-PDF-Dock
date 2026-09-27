@@ -236,7 +236,7 @@ const SplitPdf = () => {
                       </div>
                     </div>
 
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                       Split Another PDF
                     </Button>
                   </div>
@@ -244,10 +244,10 @@ const SplitPdf = () => {
 
                 {showOptions && splitPdfs.length === 0 && !isSplitting && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleSplitPdf} disabled={!pdfFile} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                    <Button onClick={handleSplitPdf} disabled={!pdfFile} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       Split PDF
                     </Button>
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset
                     </Button>
                   </div>

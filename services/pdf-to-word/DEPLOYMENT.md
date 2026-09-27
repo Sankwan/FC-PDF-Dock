@@ -1,5 +1,14 @@
 # PDF to Word: how it works, and how it's deployed
 
+> **Forestry Commission build:** this service runs only on the FC head-office
+> server, behind nginx, as part of `deploy/headoffice/`. The browser calls it on
+> the same address at `/api/pdf2word/`; nginx checks the staff session and the
+> head-office network, and adds the API key itself, so no key or service URL is
+> in the app, and CORS is not used. Do **not** use the Railway or Vercel
+> options below for FC: they would send staff documents through third-party
+> servers. They are kept only as background.
+
+
 Two things in one doc, since they're really one story: what happens to a
 file when someone uses this tool, and how to actually get the whole app —
 frontend and backend both — reachable for real testing.

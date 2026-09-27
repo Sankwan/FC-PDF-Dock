@@ -1,0 +1,112 @@
+# PDFDock, Forestry Commission head office.
+#
+# One HTTPS address serves the app, the staff sign-in API (/api/auth/) and
+# PDF to Word (/api/pdf2word/). Rendered at container start by the nginx
+# image's envsubst step: ${VAR} names below come from deploy/headoffice/.env.
+# nginx's own $variables are left alone because envsubst only replaces names
+# that exist in the environment.
+
+# Rate limits per client address.
+limit_req_zone $binary_remote_addr zone=auth:10m rate=20r/m;
+limit_req_zone $binary_remote_addr zone=convert:10m rate=6r/m;
+
+server {
+    listen 80;
+    server_name _;
+    # Everything moves to HTTPS: the service worker (offline use), the phone
+    # camera (Scan document) and secure cookies all require it.
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${PUBLIC_HOSTNAME};
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json application/wasm image/svg+xml;
+    gzip_min_length 1024;
+
+    include /etc/nginx/security-headers.conf;
+
+    # ---- Staff sign-in API ----
+    location /api/auth/ {
+        limit_req zone=auth burst=10 nodelay;
+        limit_req_status 429;
+        client_max_body_size 16k;
+        proxy_pass http://auth:8100;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # Internal: asks the auth service whether the request's session cookie is
+    # valid. Used by auth_request below; not reachable from outside.
+    location = /_session_check {
+        internal;
+        proxy_pass http://auth:8100/api/auth/check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # ---- PDF to Word: head-office network + signed-in staff only ----
+    location /api/pdf2word/ {
+        # 1. Network: only addresses listed in headoffice-networks.conf.
+        include /etc/nginx/headoffice-networks.conf;
+        # 2. Person: a valid staff session.
+        auth_request /_session_check;
+        # 3. Service: the API key is added here and never reaches browsers.
+        proxy_set_header X-API-Key "${PDF2WORD_API_KEY}";
+        proxy_set_header Cookie "";
+
+        limit_req zone=convert burst=4 nodelay;
+        limit_req_status 429;
+        client_max_body_size 50m;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_pass http://pdf2word:8000/;
+
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-store" always;
+    }
+
+    # ---- The app ----
+    location = /sw.js {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-cache";
+    }
+    location = /manifest.webmanifest {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-cache";
+    }
+    location = /index.html {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-cache";
+    }
+    # Hashed build assets never change; cache them for a year.
+    location /assets/ {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+    # nginx's mime.types has no .mjs entry; module workers refuse
+    # application/octet-stream.
+    location ~* \.mjs$ {
+        default_type application/javascript;
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

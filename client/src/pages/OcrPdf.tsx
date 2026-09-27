@@ -213,20 +213,20 @@ const OcrPdf = () => {
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                      <Button onClick={() => downloadFile(result.file, result.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                      <Button onClick={() => downloadFile(result.file, result.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                         <Download size={15} className="mr-2" /> Download Searchable PDF
                       </Button>
-                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                         OCR Another
                       </Button>
                     </div>
 
                     {result.text.trim() && (
                       <div className="flex flex-col sm:flex-row gap-3">
-                        <Button variant="outline" onClick={handleDownloadTxt} className="border-border text-foreground hover:bg-background rounded-none">
+                        <Button variant="outline" onClick={handleDownloadTxt} className="border-border text-foreground hover:bg-background rounded-md">
                           <FileType size={15} className="mr-2" /> Download .txt
                         </Button>
-                        <Button variant="outline" onClick={handleDownloadDocx} className="border-border text-foreground hover:bg-background rounded-none">
+                        <Button variant="outline" onClick={handleDownloadDocx} className="border-border text-foreground hover:bg-background rounded-md">
                           <FileType size={15} className="mr-2" /> Download .docx
                         </Button>
                       </div>
@@ -236,10 +236,10 @@ const OcrPdf = () => {
 
                 {showOptions && !result && !isProcessing && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleRun} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                    <Button onClick={handleRun} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       Run OCR
                     </Button>
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset
                     </Button>
                   </div>

@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 import { loadPdfDocument, renderPdfPageToCanvas } from "./pdfjs";
 import { brand } from "@/brand";
+import { addSignRecord } from "./signRecord";
 
 export { parsePageRange, loadPdfDocument, renderPdfPageToCanvas, renderPdfThumbnail } from "./pdfjs";
 
@@ -11,11 +12,28 @@ const toBlobPart = (bytes: Uint8Array): ArrayBuffer => {
   return copy;
 };
 
-const makePdfFile = (bytes: Uint8Array, name: string): File =>
+export const makePdfFile = (bytes: Uint8Array, name: string): File =>
   new File([toBlobPart(bytes)], name, { type: "application/pdf" });
 
+/**
+ * Loads a PDF for editing with pdf-lib. Encrypted files are refused with a
+ * clear message instead of being loaded with `ignoreEncryption`, which
+ * produced blank or corrupted output. FileUpload unlocks files before they
+ * reach a tool (UnlockPdfDialog), so this only fires if that step was skipped.
+ */
+export const loadPdfForEditing = async (data: ArrayBuffer | Uint8Array) => {
+  try {
+    return await PDFDocument.load(data);
+  } catch (err: any) {
+    if (err?.constructor?.name === "EncryptedPDFError" || /is encrypted/i.test(err?.message ?? "")) {
+      throw new Error("This PDF is locked. Remove it, add it again and enter its password to unlock it.");
+    }
+    throw err;
+  }
+};
+
 export const getPdfPageCount = async (pdfFile: File): Promise<number> => {
-  const doc = await PDFDocument.load(await pdfFile.arrayBuffer(), { ignoreEncryption: true });
+  const doc = await loadPdfForEditing(await pdfFile.arrayBuffer());
   return doc.getPageCount();
 };
 
@@ -106,7 +124,7 @@ export const compressPdf = async (
   const outName = pdfFile.name.replace(/\.pdf$/i, "") + "_compressed.pdf";
 
   // Baseline: structural re-save (strips unused objects, optionally metadata)
-  const baseDoc = await PDFDocument.load(await pdfFile.arrayBuffer(), { ignoreEncryption: true });
+  const baseDoc = await loadPdfForEditing(await pdfFile.arrayBuffer());
   if (removeMetadata) {
     baseDoc.setTitle("");
     baseDoc.setAuthor("");
@@ -174,7 +192,7 @@ export const mergePdfFiles = async (pdfFiles: File[]): Promise<File> => {
 
   for (const pdfFile of pdfFiles) {
     const arrayBuffer = await pdfFile.arrayBuffer();
-    const pdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+    const pdf = await loadPdfForEditing(arrayBuffer);
     const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
     pages.forEach((page) => mergedPdf.addPage(page));
   }
@@ -199,7 +217,7 @@ export const addWatermark = async (
   const { text, opacity = 0.15, fontSize = 48 } = options;
 
   const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+  const pdfDoc = await loadPdfForEditing(arrayBuffer);
   const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const pages = pdfDoc.getPages();
 
@@ -246,7 +264,7 @@ export const protectPdf = async (
   const { removeMetadata = true } = options;
 
   const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+  const pdfDoc = await loadPdfForEditing(arrayBuffer);
 
   if (removeMetadata) {
     pdfDoc.setTitle("");
@@ -276,7 +294,7 @@ export const splitPdf = async (
   const { pages = "all", outputType = "multiple" } = options;
 
   const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+  const pdfDoc = await loadPdfForEditing(arrayBuffer);
   const numPages = pdfDoc.getPageCount();
 
   const pagesToExtract =
@@ -329,7 +347,7 @@ export const signPdf = async (
 ): Promise<File> => {
   if (placements.length === 0) throw new Error("No signatures placed");
 
-  const pdfDoc = await PDFDocument.load(await pdfFile.arrayBuffer(), { ignoreEncryption: true });
+  const pdfDoc = await loadPdfForEditing(await pdfFile.arrayBuffer());
   const pages = pdfDoc.getPages();
 
   for (const placement of placements) {
@@ -347,6 +365,6 @@ export const signPdf = async (
     });
   }
 
-  const bytes = await pdfDoc.save();
+  const bytes = await addSignRecord(await pdfDoc.save());
   return makePdfFile(bytes, pdfFile.name.replace(/\.pdf$/i, "") + "_signed.pdf");
 };

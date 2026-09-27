@@ -1,0 +1,84 @@
+# PDFDock at Forestry Commission head office: three containers on one server.
+#
+#   web       nginx: the app, HTTPS, security headers, routes /api/*
+#   auth      staff sign-in (email code), SQLite on the auth-data volume
+#   pdf2word  PDF to Word conversion, files in memory only (tmpfs)
+#
+# Only `web` publishes ports. auth and pdf2word are reachable solely through
+# nginx on the internal network. See README.md in this folder.
+name: pdfdock
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_NAME: ${APP_NAME:-PDFDock}
+        VITE_APP_SHORT_NAME: ${APP_SHORT_NAME:-FC PDFDock}
+        VITE_ORG_NAME: Forestry Commission
+        VITE_THEME_COLOR: "#0E2516"
+        VITE_AUTH_REQUIRED: "true"
+        VITE_STAFF_EMAIL_DOMAIN: ${STAFF_EMAIL_DOMAIN:-fc.gov.gh}
+        VITE_PDF2WORD_ENABLED: "true"
+    image: pdfdock-web:latest
+    restart: unless-stopped
+    depends_on: [auth, pdf2word]
+    ports:
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${HTTPS_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME in .env}
+      PDF2WORD_API_KEY: ${PDF2WORD_API_KEY:?Set PDF2WORD_API_KEY in .env}
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./headoffice-networks.conf:/etc/nginx/headoffice-networks.conf:ro
+      - ./security-headers.conf:/etc/nginx/security-headers.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks: [internal]
+
+  auth:
+    build: ../../services/auth
+    image: pdfdock-auth:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      PUBLIC_URL: https://${PUBLIC_HOSTNAME}${PUBLIC_PORT_SUFFIX:-}
+      STAFF_EMAIL_DOMAIN: ${STAFF_EMAIL_DOMAIN:-fc.gov.gh}
+      STAFF_ALLOWLIST_FILE: ${STAFF_ALLOWLIST_FILE:-}
+      MAIL_MODE: ${MAIL_MODE:-smtp}
+      MAIL_FROM: ${MAIL_FROM:-PDFDock <no-reply@fc.gov.gh>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      COOKIE_SECURE: "true"
+      TRUST_PROXY: "true"
+    volumes:
+      - auth-data:/app/data
+      # Optional HR staff list; see README.md "Checking against HR records".
+      - ./staff:/app/staff:ro
+    networks: [internal]
+
+  pdf2word:
+    build: ../../services/pdf-to-word
+    image: pdfdock-pdf2word:latest
+    restart: unless-stopped
+    environment:
+      API_KEY: ${PDF2WORD_API_KEY:?Set PDF2WORD_API_KEY in .env}
+      # Same-origin through nginx, so no browser origin needs CORS access.
+      ALLOWED_ORIGINS: ""
+      MAX_UPLOAD_MB: 50
+      WEB_CONCURRENCY: ${PDF2WORD_WORKERS:-2}
+      OCR_JOBS: 2
+    tmpfs:
+      - /tmp
+    networks: [internal]
+
+volumes:
+  auth-data:
+
+networks:
+  internal:

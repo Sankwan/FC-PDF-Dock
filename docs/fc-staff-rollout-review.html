@@ -1,0 +1,317 @@
+<title>PDFDock for FC Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f4f6f1; --paper:#ffffff; --ink:#15231a; --muted:#56655a; --line:#d9e0d5;
+  --green:#2f8f3a; --green-ink:#1f6a29; --tint:#e6f1e3; --bark:#7a5a33;
+  --crit:#b3261e; --crit-bg:#fbe9e7; --high:#9a5b00; --high-bg:#fdf1dc; --med:#35608f; --med-bg:#e7eef7; --ok:#2f7a3a; --ok-bg:#e5f2e6;
+  --display:"Bitter",Georgia,serif; --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0f1611; --paper:#151e17; --ink:#e4ece4; --muted:#9aab9d; --line:#2a372d;
+  --green:#5cbf66; --green-ink:#7fd487; --tint:#1b2e1f; --bark:#c9a36f;
+  --crit:#ff8a80; --crit-bg:#3a1a18; --high:#f3b95f; --high-bg:#35270f; --med:#8fb6e6; --med-bg:#16253a; --ok:#7fd487; --ok-bg:#16301b;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1611; --paper:#151e17; --ink:#e4ece4; --muted:#9aab9d; --line:#2a372d;
+  --green:#5cbf66; --green-ink:#7fd487; --tint:#1b2e1f; --bark:#c9a36f;
+  --crit:#ff8a80; --crit-bg:#3a1a18; --high:#f3b95f; --high-bg:#35270f; --med:#8fb6e6; --med-bg:#16253a; --ok:#7fd487; --ok-bg:#16301b;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15.5px/1.6 var(--body);margin:0;padding-inline:16px}
+.wrap{max-width:900px;margin:0 auto;padding-block:40px 80px;display:flex;flex-direction:column;gap:44px}
+header.top{border-bottom:3px solid var(--green);padding-bottom:22px;display:flex;flex-direction:column;gap:10px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--green-ink)}
+h1{font:700 clamp(28px,5vw,40px)/1.15 var(--display);margin:0;text-wrap:balance}
+h2{font:700 24px/1.25 var(--display);margin:0 0 14px;text-wrap:balance}
+h3{font:600 16px/1.35 var(--body);margin:0 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+.meta{color:var(--muted);font-size:14px}
+code,.mono{font-family:var(--mono);font-size:.88em}
+code{background:var(--tint);padding:1px 5px;border-radius:3px}
+.verdict{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--green);padding:20px 22px;display:flex;flex-direction:column;gap:6px}
+.verdict p:last-child{margin:0}
+section{display:flex;flex-direction:column;gap:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.panel{background:var(--paper);border:1px solid var(--line);padding:16px 18px}
+.panel ul{margin:6px 0 0;padding-left:18px}
+.panel li{margin-bottom:4px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);background:var(--paper)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:11px 14px;border-bottom:1px solid var(--line)}
+th{font:500 11.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.sev{display:inline-block;font:500 11px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:5px 7px;border-radius:3px;white-space:nowrap}
+.crit{color:var(--crit);background:var(--crit-bg)} .high{color:var(--high);background:var(--high-bg)} .med{color:var(--med);background:var(--med-bg)} .ok{color:var(--ok);background:var(--ok-bg)}
+.where{font-family:var(--mono);font-size:12.5px;color:var(--muted);display:block;margin-top:4px}
+.diagram{background:var(--paper);border:1px solid var(--line);padding:14px;overflow-x:auto}
+.diagram svg{display:block;min-width:640px;width:100%;height:auto}
+.diagram text{font-family:var(--body);fill:var(--ink)}
+.phases{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);background:var(--paper)}
+.phase{display:grid;grid-template-columns:130px 1fr;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.phase:last-child{border-bottom:0}
+.phase .when{font:500 12.5px/1.4 var(--mono);color:var(--green-ink)}
+.phase ul{margin:0;padding-left:18px}
+@media (max-width:560px){.phase{grid-template-columns:1fr;gap:6px}}
+.q{background:var(--paper);border:1px solid var(--line);padding:14px 18px}
+.q strong{display:block;margin-bottom:4px}
+ol.decisions{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.sources{font-size:13.5px;color:var(--muted)}
+.sources a{color:var(--green-ink)}
+a:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Internal review · Forestry Commission, Ghana · 27 Sep 2026</span>
+  <h1>PDFDock as the Forestry Commission's staff document toolkit</h1>
+  <p class="meta">Scope: repository baseline at commit <span class="mono">2a2aa50</span>: frontend, the PDF‑to‑Word service, and the deployment docs. Covers how it currently works, what to fix, how to deploy it across head office and outstation offices, and how to tailor it to FC.</p>
+</header>
+
+<div class="verdict">
+  <span class="eyebrow">Summary</span>
+  <p><strong>PDFDock is a good fit for FC and is mostly ready.</strong> Ten of its eleven tools run entirely in the staff member's browser. Documents are never uploaded, so hosting the app does not put any FC document on a server. That matters most for outstations: the app installs once and then works with no internet and no local server.</p>
+  <p>Before rollout, fix five things: remove the Google Fonts call, add security headers that block uploads at the browser level, run PDF‑to‑Word only on the head‑office server (not Railway), stop Compress from turning text into images without warning, and rewrite the public "free / no account" wording for an FC staff audience.</p>
+</div>
+
+<section>
+  <h2>1. How it works today</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Runs in the browser, no upload (10 tools)</h3>
+      <ul>
+        <li>Merge, Split, Compress, PDF→Image, Image→PDF</li>
+        <li>Watermark, Sign (drawn signature image)</li>
+        <li>Protect: real AES‑256 password encryption (qpdf/WASM)</li>
+        <li>OCR: searchable scanned PDFs (Tesseract, English)</li>
+        <li>Word→PDF (office2pdf/WASM, ~47 MB engine loaded on first use)</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Needs a server (1 tool)</h3>
+      <ul>
+        <li><strong>PDF→Word</strong> sends the file to <code>services/pdf-to-word</code> (FastAPI + pdf2docx + OCRmyPDF).</li>
+        <li>Well hardened: files held only in RAM (tmpfs), PDF signature check, generic error messages, constant‑time key check.</li>
+        <li>The docs currently recommend hosting it on <strong>Railway</strong>, a third‑party cloud. That doesn't fit FC's goal.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Delivery</h3>
+      <ul>
+        <li>Static build (<code>dist/</code>) served by nginx in Docker.</li>
+        <li>Installable PWA on Windows, Mac, Android and iOS, and works offline once cached.</li>
+        <li>Engines are served from its own address, not a CDN.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Rebranding hooks already built in</h3>
+      <ul>
+        <li>Name, description and theme colour come from <code>.env.&lt;mode&gt;</code>.</li>
+        <li>Accent colours come from three CSS variables in <code>client/src/index.css</code>.</li>
+        <li>Icon: <code>client/public/icon.svg</code>. The header and footer logos are hard‑coded SVG and need a small change.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="meta" id="buildline">Build check (27 Sep 2026): TypeScript check passes and <code>npm run build</code> succeeds. The first install downloads about 3.5 MB (14 files). The full build is 62 MB, of which the Word→PDF engine is 48 MB and loads only when that tool is first used.</p>
+</section>
+
+<section>
+  <h2>2. What to fix before FC staff use it</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Priority</th><th>Finding</th><th>Why it matters for FC</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><span class="sev crit">Must</span></td>
+        <td>Every page load contacts Google Fonts.<span class="where">client/index.html:10</span></td>
+        <td>Sends staff IP addresses and usage times to Google. The app also looks broken at an outstation that installs it while online but without the font. It contradicts "nothing leaves the device."</td>
+        <td>Self‑host the font (e.g. <code>@fontsource/inter</code>) and remove the Google runtime caching rules.</td></tr>
+      <tr><td><span class="sev crit">Must</span></td>
+        <td>No Content‑Security‑Policy or security headers in nginx.<span class="where">docker/nginx.conf.template</span></td>
+        <td>"No upload" is currently a code promise. A CSP with <code>connect-src 'self' &lt;pdf2word host&gt;</code> makes the browser itself refuse to send data anywhere else, even after a bad dependency update. IT auditors can verify it.</td>
+        <td>Add CSP, <code>X-Content-Type-Options</code>, <code>Referrer-Policy: no-referrer</code>, <code>Permissions-Policy</code>, <code>frame-ancestors 'none'</code>.</td></tr>
+      <tr><td><span class="sev crit">Must</span></td>
+        <td>PDF→Word deployment guide recommends Railway (third‑party cloud).<span class="where">services/pdf-to-word/DEPLOYMENT.md, README.md</span></td>
+        <td>FC documents would be processed on hardware outside FC's control, which is exactly what this project exists to prevent. Data Protection Act 2012 (Act 843) obligations apply to personal data in those files.</td>
+        <td>FC build: run it only on the head‑office server. Remove Railway from FC docs.</td></tr>
+      <tr><td><span class="sev high">High</span></td>
+        <td>Compress turns every page into a JPEG image.<span class="where">client/src/lib/pdfUtils.ts:88</span></td>
+        <td>Compressed letters, permits and reports lose selectable and searchable text, and small print can blur. Staff won't notice until someone can't search or copy from an official file.</td>
+        <td>Add a lossless mode first (qpdf object‑stream/image recompression). Label the image mode "Scan quality: text becomes image" and show a warning.</td></tr>
+      <tr><td><span class="sev high">High</span></td>
+        <td>Public‑marketing wording: "Free forever", "No accounts", "0 Uploads", "no internet connection required", plus a leftover "resume template".<span class="where">Hero.tsx, ToolsSection.tsx, FAQ.tsx, Footer.tsx, HowItWorks.tsx:12</span></td>
+        <td>Wrong audience, and "0 uploads" is untrue for PDF→Word. Staff need to know which tool uses the head‑office server.</td>
+        <td>Rewrite for FC staff (see section 4). Mark PDF→Word with a "Uses FC head‑office server" badge.</td></tr>
+      <tr><td><span class="sev high">High</span></td>
+        <td>PDF→Word API key is baked into the public JavaScript.<span class="where">client/src/lib/pdfToWordApi.ts</span></td>
+        <td>Anyone who has the app can read the key. That's fine on the FC network. If the service is ever reachable from the internet, it needs real staff sign‑in.</td>
+        <td>Put the service behind the same reverse proxy as the app, with staff sign‑in (see section 3), and rate‑limit it.</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+        <td>Password‑protected PDFs are loaded with <code>ignoreEncryption: true</code> in merge, split, sign, watermark and compress.<span class="where">client/src/lib/pdfUtils.ts (7 places)</span></td>
+        <td>A locked PDF can produce blank or corrupted output with no clear error. Staff will blame the tool.</td>
+        <td>Detect encryption, ask for the password, decrypt with qpdf first, or show a clear message.</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+        <td>Protect uses one password for both opening and editing.<span class="where">client/src/lib/pdfEncryption.ts</span></td>
+        <td>FC often needs "anyone can read, but no one can edit or print" for circulated forms and notices.</td>
+        <td>Expose qpdf's permission flags: an open password (optional) and an edit/print restriction.</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+        <td>Sign places an image, not a digital signature (the page says so).<span class="where">client/src/pages/SignPdf.tsx:457</span></td>
+        <td>Act 772 recognises electronic signatures, but a pasted image is easy to copy. For approvals, FC needs to be able to tell whether a document changed after signing.</td>
+        <td>Phase 1: add an optional audit footer (name, office, date, SHA‑256 of the file). Phase 3: certificate‑based (PAdES) signing with FC‑issued certificates.</td></tr>
+      <tr><td><span class="sev med">Medium</span></td>
+        <td>Large engines download on first use (OCR ~9 MB, Word→PDF ~47 MB).</td>
+        <td>An outstation that first opens Word→PDF on a weak mobile connection may wait minutes or fail.</td>
+        <td>Add a "Prepare for offline use" button that downloads all engines with a progress bar, to be used on good Wi‑Fi or at head office.</td></tr>
+      <tr><td><span class="sev ok">Low</span></td>
+        <td>No automated tests. The Forestry Commission name is not yet used in any metadata.</td>
+        <td>Regressions only show up when a user reports them.</td>
+        <td>Add a small Playwright smoke test per tool with sample FC‑style PDFs.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>3. Deployment: head office server plus outstations with no server</h2>
+  <p>The key point: <strong>the server only delivers the app, never the documents.</strong> After a staff device has loaded the app once, all processing happens on that device. So outstations don't need a server. Each device needs one successful load, then the app works offline and updates itself the next time it's online.</p>
+
+  <div class="diagram" role="img" aria-label="Head office server hosts the app and the PDF to Word service; outstation devices install the app once and then work offline.">
+    <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <rect x="20" y="20" width="300" height="290" fill="var(--tint)" stroke="var(--green)" stroke-width="1.5"/>
+      <text x="36" y="46" font-weight="700" font-size="15">Head office, Accra</text>
+      <rect x="40" y="64" width="260" height="104" fill="var(--paper)" stroke="var(--line)"/>
+      <text x="54" y="88" font-weight="600" font-size="13.5">Existing FC server (Docker)</text>
+      <text x="54" y="110" font-size="13">nginx: FC build of PDFDock (static)</text>
+      <text x="54" y="130" font-size="13">pdf-to-word service (RAM only)</text>
+      <text x="54" y="150" font-size="13">TLS, staff sign-in, CSP</text>
+      <rect x="40" y="196" width="260" height="92" fill="var(--paper)" stroke="var(--line)"/>
+      <text x="54" y="220" font-weight="600" font-size="13.5">Head-office staff (LAN)</text>
+      <text x="54" y="242" font-size="13">All 11 tools, including PDF→Word</text>
+      <text x="54" y="262" font-size="13">docs.fc-internal address</text>
+      <line x1="170" y1="168" x2="170" y2="194" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+
+      <rect x="440" y="20" width="300" height="290" fill="var(--paper)" stroke="var(--bark)" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="456" y="46" font-weight="700" font-size="15">Regional &amp; district offices</text>
+      <text x="456" y="80" font-size="13"><tspan font-weight="600">Step 1, once:</tspan> open the app over the</text>
+      <text x="456" y="99" font-size="13">internet (via tunnel) or at head office,</text>
+      <text x="456" y="118" font-size="13">install it, tap "Prepare for offline use".</text>
+      <text x="456" y="152" font-size="13"><tspan font-weight="600">Step 2, every day:</tspan> 10 tools work with</text>
+      <text x="456" y="171" font-size="13">no internet. Files stay on the device.</text>
+      <text x="456" y="205" font-size="13"><tspan font-weight="600">When online:</tspan> app updates itself;</text>
+      <text x="456" y="224" font-size="13">PDF→Word becomes available.</text>
+      <text x="456" y="262" font-size="12.5" fill="var(--muted)">No server, no IT staff needed on site.</text>
+
+      <line x1="322" y1="116" x2="436" y2="116" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="336" y="106" font-size="12" fill="var(--muted)">app files only</text>
+      <line x1="436" y1="226" x2="322" y2="140" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+      <text x="340" y="200" font-size="12" fill="var(--muted)">PDF→Word</text>
+      <text x="340" y="215" font-size="12" fill="var(--muted)">(online only)</text>
+    </svg>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>How outstations reach head office</h3>
+      <ul>
+        <li><strong>Recommended: Cloudflare Tunnel</strong> from the head‑office server. It needs no open ports or static IP, and the server makes only outbound connections. The runbook already exists in <code>DEPLOYMENT.md</code> Part 3.</li>
+        <li>If FC already has a VPN or WAN link to regional offices, use that instead and keep the app internal‑only.</li>
+        <li>For a device that can never get online: copy the built app with a small portable web server on USB. The browser won't install it from a <code>file://</code> path.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Restricting it to staff</h3>
+      <ul>
+        <li>The app itself contains no FC data, so the main thing to restrict is the <strong>PDF→Word service</strong> (and the FC branding).</li>
+        <li>If FC staff use Microsoft 365 or Google Workspace email, put <strong>oauth2-proxy</strong> in front of both. It's free and self‑hosted, and only staff email accounts can sign in.</li>
+        <li>Cloudflare Access is simpler but free only up to 50 users. It suits a pilot, not all FC staff.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4. Tailoring it to the Forestry Commission</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Identity</h3>
+      <ul>
+        <li>Name: <em>FC DocDock</em> or <em>FC Document Tools</em>.</li>
+        <li>Accent: FC green from the logo, taken from the official artwork (not sampled from a JPEG). Keep <code>VITE_THEME_COLOR</code> in sync with it.</li>
+        <li>Put the FC mark in <code>icon.svg</code>, the header and the footer. The install icon needs PNG 192/512 versions for Android and iOS.</li>
+        <li>Footer: "Forestry Commission · No. 4 Third Avenue, Ridge, Accra · Ministry of Lands and Natural Resources" plus an IT helpdesk contact.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Staff‑facing wording</h3>
+      <ul>
+        <li>Hero: "Handle FC documents without uploading them anywhere."</li>
+        <li>Replace "Free forever" with "Approved for FC staff use" and an acceptable‑use line that references Act 843.</li>
+        <li>FAQ: "Which tools need the head‑office server?", "Can I use this at a district office with no internet?", "Is Sign legally binding?"</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>FC‑specific presets (small builds)</h3>
+      <ul>
+        <li>Watermark presets: CONFIDENTIAL, DRAFT, FOR OFFICIAL USE ONLY, CERTIFIED TRUE COPY.</li>
+        <li>"Received" stamp: division (FSD, WD, TIDD, RMSC, Training Centre), office, date, file reference.</li>
+        <li>Metadata: set Author to "Forestry Commission, Ghana" or strip personal names.</li>
+        <li>Page numbering and file references on every page (e.g. <span class="mono">FC/FSD/…</span>).</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>New tools worth adding</h3>
+      <ul>
+        <li><strong>Redact</strong>: permanently black out Ghana Card numbers, phone numbers and signatures before sharing. This is the most valuable addition under Act 843.</li>
+        <li><strong>Scan with phone</strong>: camera photos, cropped and straightened into one PDF with OCR, for field staff and forest guards.</li>
+        <li><strong>Organise pages</strong>: rotate, delete and reorder.</li>
+        <li><strong>Letterhead</strong>: put FC letterhead on an existing PDF.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>5. Suggested rollout</h2>
+  <div class="phases">
+    <div class="phase"><div class="when">Phase 1<br>~1–2 weeks</div><ul>
+      <li>Create the FC build (<code>.env.fc</code>, colours, logo, wording) and self‑host fonts.</li>
+      <li>Add CSP and security headers. Deploy on the head‑office server with Docker Compose (app + pdf-to-word).</li>
+      <li>Add the Compress lossless mode and warning, plus the "Prepare for offline use" button.</li>
+      <li>Pilot: head office, plus one regional office and one district office.</li>
+    </ul></div>
+    <div class="phase"><div class="when">Phase 2<br>~1 month</div><ul>
+      <li>Set up Cloudflare Tunnel (or FC VPN) and staff sign‑in in front of the app and PDF→Word.</li>
+      <li>Add Redact, Organise pages, FC watermark and stamp presets, handling for locked PDFs, and Protect permissions.</li>
+      <li>One‑page staff guide plus a 20‑minute training for regional IT focal persons.</li>
+    </ul></div>
+    <div class="phase"><div class="when">Phase 3<br>later</div><ul>
+      <li>Phone scanning, letterhead tool, an audit footer for signatures.</li>
+      <li>Certificate‑based digital signing if FC adopts a certificate authority.</li>
+      <li>Automated smoke tests, and a scheduled monthly rebuild for security patches.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>6. Decisions needed from FC</h2>
+  <ol class="decisions">
+    <li><strong>Internet‑reachable or FC network only?</strong> Outstations need some route to head office at least once. A Cloudflare Tunnel is the simplest; an existing FC VPN/WAN is the most private.</li>
+    <li><strong>Which staff email system does FC use?</strong> The answer (Microsoft 365, Google Workspace, or other) decides how staff sign‑in works.</li>
+    <li><strong>Which domain?</strong> fcghana.org currently shows a hosting placeholder page, so confirm which domain IT controls (e.g. a subdomain like <span class="mono">docs.</span>) before issuing certificates.</li>
+    <li><strong>Who approves use of the FC logo and name</strong> in the app, and who owns it after rollout (MIS/IT unit)?</li>
+  </ol>
+</section>
+
+<section class="sources">
+  <h2>Sources</h2>
+  <p>Code: repository baseline (README.md, NOTICE.md, client/src, services/pdf-to-word, docker/). FC details:
+  <a href="https://en.wikipedia.org/wiki/Forestry_Commission_(Ghana)">Wikipedia: Forestry Commission (Ghana)</a> ·
+  <a href="https://mlnr.gov.gh/agency/forestry-commission/">MLNR: Forestry Commission</a> ·
+  <a href="https://www.timbertradeportal.com/en/ghana/53/sources-and-contacts">Timber Trade Portal: Ghana contacts</a>. Law:
+  <a href="https://www.moc.gov.gh/electronic-transactions-act-772">Electronic Transactions Act 772 (MoC)</a> ·
+  <a href="https://www.dlapiperdataprotection.com/index.html?t=law&amp;c=GH">DLA Piper: Ghana data protection</a>. This is not legal advice. Confirm Act 843 and Act 772 points with FC's legal unit.</p>
+</section>
+
+</div>

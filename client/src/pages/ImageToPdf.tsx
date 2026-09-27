@@ -223,10 +223,10 @@ const ImageToPdf = () => {
                       </AlertDescription>
                     </Alert>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => downloadFile(pdfResult.file, pdfResult.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                      <Button onClick={() => downloadFile(pdfResult.file, pdfResult.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                         <Download size={15} className="mr-2" /> Download PDF
                       </Button>
-                      <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-none">
+                      <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-md">
                         Create Another
                       </Button>
                     </div>
@@ -235,10 +235,10 @@ const ImageToPdf = () => {
 
                 {showOptions && !pdfResult && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleConvertToPdf} disabled={imageFiles.length === 0 || isConverting} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                    <Button onClick={handleConvertToPdf} disabled={imageFiles.length === 0 || isConverting} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       {isConverting ? "Converting..." : "Convert to PDF"}
                     </Button>
-                    <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-none">
+                    <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset
                     </Button>
                   </div>

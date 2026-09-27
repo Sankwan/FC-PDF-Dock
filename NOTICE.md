@@ -60,3 +60,21 @@ The **Protect PDF** tool's password encryption is powered by
 [**@neslinesli93/qpdf-wasm**](https://github.com/neslinesli93/qpdf-wasm),
 used under the ISC License. `client/public/qpdf/qpdf.wasm` is that
 package's published build output, used unmodified.
+
+## Added for the Forestry Commission build
+
+| Component | Used for | Licence |
+|---|---|---|
+| [OpenCV.js](https://opencv.org) via [@techstark/opencv-js](https://github.com/TechStark/opencv-js) | Scan document: edge detection, perspective correction, filters. `client/public/opencv/opencv.js` is the package's build output, unmodified (`npm run vendor:opencv`). | Apache-2.0 (`client/public/opencv/LICENSE`) |
+| [docx](https://github.com/dolanmiu/docx) | Letterhead: Word (.docx) letterhead and letters | MIT |
+| [Public Sans](https://public-sans.digital.gov) via [@fontsource-variable/public-sans](https://fontsource.org) | App typeface, self-hosted | SIL Open Font License 1.1 |
+| [nodemailer](https://nodemailer.com) | services/auth: sending sign-in codes | MIT-0 |
+| [jpeg-js](https://github.com/jpeg-js/jpeg-js), [pngjs](https://github.com/pngjs/pngjs) | Build-time only: generating the FC logo and app icons | BSD-3-Clause, MIT |
+
+Techniques adapted (no code copied): image-only recompression for text-preserving
+compression from [drikusroor/compress-pdf](https://github.com/drikusroor/compress-pdf);
+document detection approach as in [jscanify](https://github.com/puffinsoft/jscanify).
+
+The Forestry Commission name, logo and letterhead design belong to the
+Forestry Commission, Ghana. Their use needs FC approval (Corporate Affairs).
+They are not covered by this repository's MIT licence.

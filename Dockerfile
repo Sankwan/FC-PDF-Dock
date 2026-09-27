@@ -1,28 +1,29 @@
-# Frontend static build, for Railway (or any Docker host) — the whole
-# app is a static Vite/PWA bundle; this just builds it and serves it.
-# The pdf-to-word backend has its own separate Dockerfile under
-# services/pdf-to-word/ — that's a distinct Railway service.
+# The PDFDock web app: builds the static Vite/PWA bundle and serves it with
+# nginx. For the Forestry Commission head-office setup (HTTPS, sign-in and
+# PDF to Word behind the same address) use deploy/headoffice/, which builds
+# this image and mounts its own nginx configuration over the default one.
 
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Railway does NOT auto-forward service variables into a Dockerfile
-# build — each one needed here must be declared as an ARG and set as a
-# variable on this Railway service (see DEPLOYMENT.md). Vite inlines
-# these into the JS bundle at build time; there is no way to change them
-# without rebuilding.
-ARG VITE_APP_NAME
-ARG VITE_APP_SHORT_NAME
-ARG VITE_APP_DESCRIPTION
-ARG VITE_THEME_COLOR
-ARG VITE_PDF2WORD_API_URL
-ARG VITE_PDF2WORD_API_KEY
+# Vite inlines VITE_* values into the JavaScript at build time, so they are
+# build arguments. None of them are secrets.
+ARG VITE_APP_NAME="PDFDock"
+ARG VITE_APP_SHORT_NAME="FC PDFDock"
+ARG VITE_ORG_NAME="Forestry Commission"
+ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded."
+ARG VITE_THEME_COLOR="#0E2516"
+ARG VITE_AUTH_REQUIRED="true"
+ARG VITE_STAFF_EMAIL_DOMAIN="fc.gov.gh"
+ARG VITE_PDF2WORD_ENABLED="true"
 ENV VITE_APP_NAME=$VITE_APP_NAME \
     VITE_APP_SHORT_NAME=$VITE_APP_SHORT_NAME \
+    VITE_ORG_NAME=$VITE_ORG_NAME \
     VITE_APP_DESCRIPTION=$VITE_APP_DESCRIPTION \
     VITE_THEME_COLOR=$VITE_THEME_COLOR \
-    VITE_PDF2WORD_API_URL=$VITE_PDF2WORD_API_URL \
-    VITE_PDF2WORD_API_KEY=$VITE_PDF2WORD_API_KEY
+    VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \
+    VITE_STAFF_EMAIL_DOMAIN=$VITE_STAFF_EMAIL_DOMAIN \
+    VITE_PDF2WORD_ENABLED=$VITE_PDF2WORD_ENABLED
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -33,11 +34,10 @@ RUN npm run build
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY deploy/headoffice/security-headers.conf /etc/nginx/security-headers.conf
 
-# Default for local `docker run`/testing — Railway overrides this with
-# its own assigned port at runtime, same mechanism as the backend service.
 ENV PORT=8080
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget -q -O- http://127.0.0.1:${PORT}/ >/dev/null 2>&1 || exit 1
+  CMD wget -q -O- http://127.0.0.1:${PORT}/ >/dev/null 2>&1 || wget -q --no-check-certificate -O- https://127.0.0.1/ >/dev/null 2>&1 || exit 1

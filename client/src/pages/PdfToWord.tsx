@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
-import { FileText, Download, ServerOff } from "lucide-react";
+import { FileText, Download, ServerOff, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -103,18 +103,21 @@ const PdfToWord = () => {
             <ServerOff size={32} className="mx-auto text-muted-foreground mb-3" />
             <h2 className="text-base font-semibold text-foreground mb-1">Not set up on this deployment</h2>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              This tool needs a running <code className="text-xs bg-muted px-1 py-0.5 rounded">pdf-to-word</code> service
-              and a <code className="text-xs bg-muted px-1 py-0.5 rounded">VITE_PDF2WORD_API_URL</code> build-time setting
-              pointing at it — see <code className="text-xs bg-muted px-1 py-0.5 rounded">services/pdf-to-word/README.md</code>.
+              PDF to Word is switched off on this installation. Contact the MIS/IT unit if you need it.
             </p>
           </div>
         ) : (
           <div className="max-w-2xl space-y-3">
-            <div className="bg-brand-tint border border-brand/30 p-4 flex gap-3">
-              <ServerOff size={15} className="text-brand flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Uploads here might take some time </strong>
-              </p>
+            <div role="note" className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50">
+              <Building2 size={18} className="mt-0.5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+              <div className="text-sm leading-relaxed">
+                <p className="font-semibold">Currently available at head office only</p>
+                <p className="mt-0.5">
+                  PDF to Word uses the conversion server at Head Office, so for now it only works on the head-office network.
+                  An update for regional and district offices will roll out soon. All other tools work everywhere.
+                </p>
+                <p className="mt-1.5 text-xs opacity-80">Your file is sent only to the server, converted, and deleted immediately. It is never stored. Converting pdf to word needs a server to work properly</p>
+              </div>
             </div>
 
             <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
@@ -164,11 +167,11 @@ const PdfToWord = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Button
                             onClick={() => downloadFile(resultFile, resultFile.name, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
-                            className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold"
+                            className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
                           >
                             <Download size={15} className="mr-2" /> Download .docx
                           </Button>
-                          <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                          <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                             Convert Another
                           </Button>
                         </div>
@@ -176,10 +179,10 @@ const PdfToWord = () => {
                     ) : (
                       !isConverting && (
                         <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                          <Button onClick={handleConvert} className="bg-brand text-white hover:bg-brand-dark rounded-none font-semibold">
+                          <Button onClick={handleConvert} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                             Convert to Word
                           </Button>
-                          <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-none">
+                          <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
                             Reset
                           </Button>
                         </div>

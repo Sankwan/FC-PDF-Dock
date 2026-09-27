@@ -1,5 +1,14 @@
 # pdf-to-word service
 
+> **Forestry Commission build:** this service runs only on the FC head-office
+> server, behind nginx, as part of `deploy/headoffice/`. The browser calls it on
+> the same address at `/api/pdf2word/`; nginx checks the staff session and the
+> head-office network, and adds the API key itself, so no key or service URL is
+> in the app, and CORS is not used. Do **not** use the Railway or Vercel
+> options below for FC: they would send staff documents through third-party
+> servers. They are kept only as background.
+
+
 A small, self-hosted API that does what the rest of the Local PDF Toolkit
 deliberately doesn't: run on a server. Converts PDF → DOCX, the one
 direction nobody's solved client-side (see the main project's `README.md`

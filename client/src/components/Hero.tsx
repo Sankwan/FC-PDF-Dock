@@ -1,82 +1,53 @@
 import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
-import { brand } from "@/brand";
-import { tools } from "@/components/ToolsSection";
+import { HardDrive, ScanLine, FileBadge2, EyeOff, Combine, WifiOff, Server } from "lucide-react";
+import { useAuth } from "@/context/Auth";
 
-const quickTools = [
-  { label: "Merge PDFs", href: "/merge-pdfs", accent: true },
-  { label: "Split PDF", href: "/split-pdf", accent: false },
-  { label: "Compress", href: "/compress-pdf", accent: false },
-  { label: "Word to PDF", href: "/word-to-pdf", accent: true },
-  { label: "PDF → Image", href: "/pdf-to-image", accent: false },
-  { label: "Watermark", href: "/watermark-pdf", accent: false },
-  { label: "Sign PDF", href: "/sign-pdf", accent: true },
-  { label: "OCR PDF", href: "/ocr-pdf", accent: true },
+const quick = [
+  { label: "Scan document", href: "/scan", icon: ScanLine },
+  { label: "Letterhead", href: "/letterhead", icon: FileBadge2 },
+  { label: "Redact PDF", href: "/redact-pdf", icon: EyeOff },
+  { label: "Merge PDFs", href: "/merge-pdfs", icon: Combine },
 ];
 
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+};
+
 const Hero = () => {
+  const { user } = useAuth();
   return (
-    <section className="bg-card overflow-hidden">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 min-h-[420px]">
-          <div className="lg:col-span-3 flex flex-col justify-center py-14 lg:pr-12 lg:border-r lg:border-brand-tint">
-            <div className="inline-flex items-center gap-2 mb-5">
-              <div className="w-6 h-0.5 bg-brand" />
-              <span className="text-brand text-xs font-semibold uppercase tracking-widest">100% Browser-Based, Offline · Zero Upload</span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-heading text-foreground leading-[1.05] mb-5">
-              {brand.name}
+    <section className="border-b border-border bg-card">
+      <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-end">
+          <div>
+            <p className="text-sm font-semibold text-brand">{greeting()}{user?.firstName ? `, ${user.firstName}` : ""}</p>
+            <h1 className="mt-2 text-3xl font-bold leading-tight text-foreground sm:text-4xl" style={{ textWrap: "balance" } as React.CSSProperties}>
+              What do you need to do with a document today?
             </h1>
-            <p className="text-muted-foreground text-lg max-w-xl mb-8 leading-relaxed">
-              {brand.description}
+            <p className="mt-3 max-w-xl text-muted-foreground">
+              Every tool here works on your own computer or phone. Your files are not uploaded, stored or seen by anyone else.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href="#tools"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand text-white font-semibold hover:bg-brand-dark transition-colors text-sm"
-              >
-                Browse All Tools <ArrowRight size={16} />
-              </a>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border text-foreground font-semibold hover:border-brand hover:text-brand transition-colors text-sm"
-              >
-                How It Works
-              </a>
-            </div>
+            <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><HardDrive size={15} className="text-brand" /> Files stay on this device</li>
+              <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Works offline once installed</li>
+              <li className="flex items-center gap-2"><Server size={15} className="text-brand" /> PDF to Word: head office only</li>
+            </ul>
           </div>
 
-          <div className="lg:col-span-2 flex flex-col justify-center py-10 lg:pl-10">
-            <p className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mb-4">Quick Access</p>
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick start</p>
             <div className="grid grid-cols-2 gap-2">
-              {quickTools.map((tool) => (
+              {quick.map(({ label, href, icon: Icon }) => (
                 <Link
-                  key={tool.href}
-                  href={tool.href}
-                  className={`group flex items-center justify-between px-3 py-3 border transition-colors ${
-                    tool.accent
-                ? "border-brand bg-brand-tint hover:bg-brand-tint text-foreground"
-                : "border-border hover:border-brand text-foreground hover:bg-brand-tint"
-                  }`}
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-3 text-sm font-semibold text-foreground transition-colors hover:border-brand hover:bg-brand-tint"
                 >
-                  <span className="text-sm font-medium">{tool.label}</span>
-                  <ArrowRight size={13} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform" />
+                  <Icon size={18} className="shrink-0 text-brand" />
+                  <span className="truncate">{label}</span>
                 </Link>
               ))}
-            </div>
-            <div className="mt-5 pt-4 border-t border-brand-tint grid grid-cols-3 gap-3 text-center">
-              <div>
-                <div className="text-2xl font-bold text-foreground">{tools.length}</div>
-                <div className="text-muted-foreground text-xs mt-0.5">Tools</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">0</div>
-                <div className="text-muted-foreground text-xs mt-0.5">Uploads</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">Free</div>
-                <div className="text-muted-foreground text-xs mt-0.5">Forever</div>
-              </div>
             </div>
           </div>
         </div>

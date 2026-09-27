@@ -1,161 +1,129 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Menu, X, Sun, Moon, Download } from "lucide-react";
-import { brand } from "@/brand";
+import { ArrowLeft, ChevronDown, CloudDownload, Download, LogOut, Moon, Sun, WifiOff } from "lucide-react";
+import { brand, features } from "@/brand";
 import { useTheme } from "@/components/ui/theme-provider";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useAuth } from "@/context/Auth";
 import InstallGuide from "@/components/InstallGuide";
+import OfflineDialog from "@/components/OfflineDialog";
 
-const ThemeToggle = ({ className = "" }: { className?: string }) => {
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  return (
-    <button
-      type="button"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-card/10 text-white/70 transition hover:bg-card/20 hover:text-white ${className}`}
-    >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
-    </button>
-  );
-};
-
-const Logo = () => (
-  <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6 3h13.5L28 11.5V29a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z" fill="white"/>
-    <path d="M19.5 3L28 11.5h-8.5V3z" fill="#ccc"/>
-    <line x1="11" y1="15" x2="21" y2="25" stroke="hsl(var(--brand))" strokeWidth="2.5" strokeLinecap="round"/>
-    <line x1="21" y1="15" x2="11" y2="25" stroke="hsl(var(--brand))" strokeWidth="2.5" strokeLinecap="round"/>
-  </svg>
-);
-
-const navItems = [
-  { label: "Tools", href: "/#tools" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "FAQ", href: "/#faq" },
-];
+const initials = (first?: string, last?: string) => `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "FC";
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
+  const [offlineOpen, setOfflineOpen] = useState(false);
   const [location] = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
   const { isStandalone } = useInstallPrompt();
+  const { user, offline, signOut } = useAuth();
+  const menuRef = useRef<HTMLDivElement>(null);
   const isDark = resolvedTheme === "dark";
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => setMenuOpen(false), [location]);
+
+  const menuItem = "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-foreground hover:bg-muted";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0A0A0A]/90 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b-[3px] border-brand-logo bg-chrome" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
+        <div className="flex h-16 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-          {location !== "/" && (
-            <button
-              type="button"
-              aria-label="Go back"
-              title="Go back"
-              onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/")}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-card/10 text-white transition hover:bg-card/20"
-            >
-              <ArrowLeft size={17} />
-            </button>
-          )}
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 group" onClick={() => setIsMenuOpen(false)}>
-            <div className="flex items-center justify-center w-8 h-8 bg-[#0A0A0A] border border-brand">
-              <Logo />
-            </div>
-            <span className="text-xl font-bold tracking-tight font-heading text-white truncate">
-              {brand.shortName}
-            </span>
-          </Link>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-white/60 hover:text-white transition-colors relative py-1 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-brand hover:after:w-full after:transition-all"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {!isStandalone && (
+            {location !== "/" && (
               <button
                 type="button"
-                onClick={() => setInstallOpen(true)}
-                aria-label="Save this app to your device"
-                title="Save this app to your device"
-                className="hidden md:grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-card/10 text-white/70 transition hover:bg-card/20 hover:text-white"
+                aria-label="Go back"
+                title="Go back"
+                onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = "/"))}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white transition hover:bg-white/10"
               >
-                <Download size={16} />
+                <ArrowLeft size={17} />
               </button>
             )}
-            <div className="hidden md:block">
-              <ThemeToggle />
-            </div>
-            <a
-              href="/#tools"
-              className="hidden md:inline-flex items-center px-4 py-1.5 bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
-            >
-              Get Started
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <span className="grid h-11 w-[3.6rem] shrink-0 place-items-center rounded-md bg-white p-1">
+                <img src={brand.logo} alt="" className="h-full w-full object-contain" />
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-[10.5px] font-semibold uppercase tracking-[0.16em] text-brand-logo">{brand.orgName}</span>
+                <span className="block truncate text-lg font-bold text-white">{brand.name}</span>
+              </span>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {offline && (
+              <span className="hidden items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 sm:inline-flex" title="The head-office server can't be reached. Tools that run on this device still work.">
+                <WifiOff size={13} /> Offline
+              </span>
+            )}
+            <a href="/#tools" className="hidden rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white md:inline-block">
+              All tools
             </a>
-            <button
-              className="md:hidden p-1.5 text-white/60 hover:text-white focus:outline-none"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-white hover:bg-white/10"
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-logo text-xs font-bold text-chrome">
+                  {features.authRequired ? initials(user?.firstName, user?.lastName) : "FC"}
+                </span>
+                <span className="hidden max-w-[9rem] truncate text-sm font-medium lg:inline">{user?.firstName ?? "Menu"}</span>
+                <ChevronDown size={15} className="text-white/60" />
+              </button>
+
+              {menuOpen && (
+                <div role="menu" className="absolute right-0 mt-2 w-72 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">
+                  {user && (
+                    <div className="border-b border-border px-3 pb-3 pt-2">
+                      <div className="truncate text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</div>
+                      <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                    </div>
+                  )}
+                  <button role="menuitem" type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
+                    <CloudDownload size={16} className="text-brand" /> Download tools for offline use
+                  </button>
+                  {!isStandalone && (
+                    <button role="menuitem" type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>
+                      <Download size={16} className="text-brand" /> Install the app on this device
+                    </button>
+                  )}
+                  <button role="menuitem" type="button" className={menuItem} onClick={() => setTheme(isDark ? "light" : "dark")}>
+                    {isDark ? <Sun size={16} className="text-brand" /> : <Moon size={16} className="text-brand" />}
+                    {isDark ? "Light mode" : "Dark mode"}
+                  </button>
+                  {features.authRequired && user && (
+                    <button role="menuitem" type="button" className={`${menuItem} border-t border-border`} onClick={() => { setMenuOpen(false); signOut(); }}>
+                      <LogOut size={16} className="text-muted-foreground" /> Sign out
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {isMenuOpen && (
-          <div className="md:hidden border-t border-[#222] py-4">
-            <div className="flex flex-col gap-1">
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="text-white/60 hover:text-white hover:bg-[#1a1a1a] px-3 py-2.5 text-sm font-medium transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <button
-                onClick={() => setTheme(isDark ? "light" : "dark")}
-                className="flex items-center justify-between text-white/60 hover:text-white hover:bg-[#1a1a1a] px-3 py-2.5 text-sm font-medium transition-colors"
-              >
-                <span>{isDark ? "Dark mode" : "Light mode"}</span>
-                {isDark ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-              {!isStandalone && (
-                <button
-                  onClick={() => { setIsMenuOpen(false); setInstallOpen(true); }}
-                  className="flex items-center justify-between text-white/60 hover:text-white hover:bg-[#1a1a1a] px-3 py-2.5 text-sm font-medium transition-colors"
-                >
-                  <span>Save App</span>
-                  <Download size={16} />
-                </button>
-              )}
-              <a
-                href="/#tools"
-                className="mt-2 mx-3 px-4 py-2 bg-brand text-white text-sm font-semibold text-center hover:bg-brand-dark transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Get Started
-              </a>
-            </div>
-          </div>
-        )}
       </div>
 
       <InstallGuide open={installOpen} onOpenChange={setInstallOpen} />
+      <OfflineDialog open={offlineOpen} onOpenChange={setOfflineOpen} />
     </header>
   );
 };
