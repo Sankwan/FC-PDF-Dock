@@ -21,7 +21,7 @@ const Footer = () => (
 
         <nav aria-label="All tools" className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
           {tools.map((t) => (
-            <Link key={t.id} href={t.link} className="text-sm text-muted-foreground hover:text-brand">
+            <Link key={t.id} href={t.link} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-brand">
               {t.title}
             </Link>
           ))}

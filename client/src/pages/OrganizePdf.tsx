@@ -185,7 +185,7 @@ const OrganizePdf = () => {
     }
   };
 
-  const iconBtn = "grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40";
+  const iconBtn = "grid h-11 w-11 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40";
   const toolbarBtn = "inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground hover:border-brand hover:text-brand disabled:pointer-events-none disabled:opacity-40";
 
   return (
@@ -278,7 +278,7 @@ const OrganizePdf = () => {
                         type="button"
                         aria-label={`Drag page ${i + 1}`}
                         onPointerDown={(e) => onGripDown(e, i, p.key)}
-                        className="grid h-8 w-8 cursor-grab touch-none place-items-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                        className="grid h-11 w-11 cursor-grab touch-none place-items-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
                       >
                         <GripVertical size={16} />
                       </button>

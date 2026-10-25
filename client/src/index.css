@@ -123,3 +123,27 @@
     html { scroll-behavior: auto; }
   }
 }
+
+/* Shared web interaction sizing. Checkboxes keep their native visual size;
+   their associated label supplies the larger touch area. */
+@layer base {
+  button:not([role="checkbox"]):not([role="radio"]),
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select, textarea {
+    min-height: 2.75rem;
+  }
+  button:not([role="checkbox"]):not([role="radio"]) { min-width: 2.75rem; }
+  input, select, textarea { font-size: 1rem; }
+  label:has([role="checkbox"]), label:has(input[type="checkbox"]) { min-height: 2.75rem; }
+  :where(main p, main li, main label) { overflow-wrap: anywhere; }
+  @media (max-width: 639px) {
+    main .text-sm { font-size: 1rem; line-height: 1.5; }
+    main .text-xs { font-size: .875rem; line-height: 1.5; }
+    main input, main select, main textarea { font-size: 1rem; }
+  }
+}
+
+@layer utilities {
+  :root :is(input, select, textarea) { font-size: 1rem; }
+  main p.text-sm { font-size: 1rem; line-height: 1.6; }
+}

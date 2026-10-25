@@ -49,7 +49,7 @@ const Header = () => {
                 aria-label="Go back"
                 title="Go back"
                 onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = "/"))}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white transition hover:bg-white/10"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 text-white transition hover:bg-white/10"
               >
                 <ArrowLeft size={17} />
               </button>
@@ -82,7 +82,7 @@ const Header = () => {
                 aria-label="Account and app settings"
                 aria-controls="app-settings"
                 aria-expanded={menuOpen}
-                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-white hover:bg-white/10"
+                className="flex items-center gap-2 rounded-full min-h-11 py-1 pl-1 pr-2 text-white hover:bg-white/10"
               >
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-logo text-xs font-bold text-chrome">
                   {features.authRequired ? initials(user?.firstName, user?.lastName) : "FC"}

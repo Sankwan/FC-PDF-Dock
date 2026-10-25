@@ -130,10 +130,10 @@ const CameraView = ({
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black text-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div className="flex items-center justify-between px-4 py-3">
-        <button type="button" onClick={onClose} aria-label="Close camera" className="grid h-10 w-10 place-items-center rounded-full bg-white/10"><X size={20} /></button>
+        <button type="button" onClick={onClose} aria-label="Close camera" className="grid h-11 w-11 place-items-center rounded-full bg-white/10"><X size={20} /></button>
         <span className="text-sm text-white/80">{quad ? "Page found. Hold steady" : "Point at a document"}</span>
         {torch !== null ? (
-          <button type="button" onClick={toggleTorch} aria-label={torch ? "Turn light off" : "Turn light on"} className="grid h-10 w-10 place-items-center rounded-full bg-white/10">
+          <button type="button" onClick={toggleTorch} aria-label={torch ? "Turn light off" : "Turn light on"} className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
             {torch ? <Flashlight size={18} /> : <FlashlightOff size={18} />}
           </button>
         ) : <span className="w-10" />}
@@ -244,8 +244,8 @@ const CornerEditor = ({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crop size={16} className="text-brand" /> Adjust the corners</h2>
         <div className="flex gap-2">
-          <button type="button" onClick={redetect} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Wand2 size={15} /> Auto</button>
-          <button type="button" onClick={() => setQuad(fullQuad(W, H))} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Maximize size={15} /> Whole photo</button>
+          <button type="button" onClick={redetect} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Wand2 size={15} /> Auto</button>
+          <button type="button" onClick={() => setQuad(fullQuad(W, H))} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Maximize size={15} /> Whole photo</button>
         </div>
       </div>
 
@@ -320,11 +320,11 @@ const CornerEditor = ({
         <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look</span>
         {FILTERS.map((f) => (
           <button key={f.id} type="button" onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}
-            className={`h-9 rounded-full border px-4 text-sm font-medium ${filter === f.id ? "border-brand bg-brand text-white" : "border-border text-foreground hover:border-brand"}`}>
+            className={`min-h-11 rounded-full border px-4 text-sm font-medium ${filter === f.id ? "border-brand bg-brand text-white" : "border-border text-foreground hover:border-brand"}`}>
             {f.label}
           </button>
         ))}
-        <button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand">
+        <button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand">
           <RotateCw size={15} /> Rotate{rotation ? ` (${rotation}°)` : ""}
         </button>
       </div>
@@ -629,11 +629,11 @@ const ScanDocument = () => {
                     <h2 className="text-sm font-semibold text-foreground">{pages.length} page{pages.length === 1 ? "" : "s"}</h2>
                     <div className="flex flex-wrap gap-2">
                       {hasCamera && (
-                        <button type="button" onClick={() => setStep("camera")} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
+                        <button type="button" onClick={() => setStep("camera")} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
                           <Camera size={15} /> Scan more
                         </button>
                       )}
-                      <button type="button" onClick={() => importRef.current?.click()} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
+                      <button type="button" onClick={() => importRef.current?.click()} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
                         <ImagePlus size={15} /> Add photos
                       </button>
                     </div>
@@ -646,13 +646,13 @@ const ScanDocument = () => {
                           {p.resultUrl && <img src={p.resultUrl} alt={`Page ${i + 1}`} className="max-h-full max-w-full shadow-sm" />}
                         </div>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => movePage(i, -1)} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowLeft size={15} /></button>
+                          <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => movePage(i, -1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowLeft size={15} /></button>
                           <span className="text-xs font-semibold tabular-nums text-muted-foreground">{i + 1}</span>
-                          <button type="button" aria-label="Move later" disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowRight size={15} /></button>
+                          <button type="button" aria-label="Move later" disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowRight size={15} /></button>
                         </div>
                         <div className="flex items-center justify-center gap-1">
-                          <button type="button" aria-label={`Edit page ${i + 1}`} onClick={() => { setEditing({ page: p, isNew: false, fromCamera: false }); setStep("adjust"); }} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-brand"><Pencil size={15} /></button>
-                          <button type="button" aria-label={`Delete page ${i + 1}`} onClick={() => { setPages((all) => all.filter((x) => x.id !== p.id)); setResult(null); }} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"><Trash2 size={15} /></button>
+                          <button type="button" aria-label={`Edit page ${i + 1}`} onClick={() => { setEditing({ page: p, isNew: false, fromCamera: false }); setStep("adjust"); }} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-brand"><Pencil size={15} /></button>
+                          <button type="button" aria-label={`Delete page ${i + 1}`} onClick={() => { setPages((all) => all.filter((x) => x.id !== p.id)); setResult(null); }} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"><Trash2 size={15} /></button>
                         </div>
                       </li>
                     ))}
@@ -662,7 +662,7 @@ const ScanDocument = () => {
                     <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look for all pages</span>
                     {FILTERS.map((f) => (
                       <button key={f.id} type="button" disabled={processing} onClick={() => setAllFilters(f.id)}
-                        className={`h-8 rounded-full border px-3 text-xs font-medium ${pages.every((p) => p.filter === f.id) ? "border-brand bg-brand text-white" : "border-border hover:border-brand"}`}>
+                        className={`min-h-11 rounded-full border px-3 text-xs font-medium ${pages.every((p) => p.filter === f.id) ? "border-brand bg-brand text-white" : "border-border hover:border-brand"}`}>
                         {f.label}
                       </button>
                     ))}
@@ -682,7 +682,7 @@ const ScanDocument = () => {
                       <div className="mt-1.5 flex gap-1 rounded-md border border-border p-1">
                         {PAGE_SIZES.map((s) => (
                           <button key={s.id} type="button" onClick={() => { setPageSize(s.id); setResult(null); }} aria-pressed={pageSize === s.id}
-                            className={`h-9 rounded px-3 text-sm ${pageSize === s.id ? "bg-brand text-white" : "text-foreground hover:bg-muted"}`}>
+                            className={`min-h-11 rounded px-3 text-sm ${pageSize === s.id ? "bg-brand text-white" : "text-foreground hover:bg-muted"}`}>
                             {s.label}
                           </button>
                         ))}

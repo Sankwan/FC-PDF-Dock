@@ -443,7 +443,7 @@ const SignPdf = () => {
                       </button>
                       <div
                         onPointerDown={(e) => onPointerDownBox(e, p.id, "resize")}
-                        className="absolute -bottom-2 -right-2 w-4 h-4 rounded-sm bg-brand border-2 border-white cursor-se-resize"
+                        className="absolute -bottom-2 -right-2 w-11 h-11 rounded-md bg-brand border-2 border-white cursor-se-resize"
                         style={{ touchAction: "none" }}
                       />
                     </div>

@@ -37,7 +37,7 @@ const Hero = () => {
 
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick start</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
               {quick.map(({ label, href, icon: Icon }) => (
                 <Link
                   key={href}

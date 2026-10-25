@@ -52,9 +52,9 @@ const FilePreview: React.FC<FilePreviewProps> = ({
     return (
       <div className={`mb-6 overflow-hidden rounded-2xl border border-black/[0.08] bg-card/65 shadow-[0_24px_70px_-48px_rgba(0,0,0,0.5)] backdrop-blur-2xl ${className}`}>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-black/[0.06] bg-card/55 px-4 py-3">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <PdfIcon className="h-5 w-5" />
-            <span className="text-sm font-medium text-foreground truncate max-w-[280px]">{files[0].name}</span>
+            <span className="text-sm font-medium text-foreground min-w-0 truncate">{files[0].name}</span>
           </div>
           {showControls && (
             <button
@@ -117,10 +117,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({
           {files.map((file, index) => (
             <div key={`${file.name}-${index}`} className="border border-border overflow-hidden group relative">
               {showControls && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                <div className="absolute bottom-2 right-2 z-10 flex items-center justify-center gap-2 rounded-md bg-card/95 p-1">
                   {onRemove && (
                     <button
-                      className="w-7 h-7 bg-card text-brand hover:bg-brand hover:text-white transition-colors flex items-center justify-center"
+                      className="w-11 h-11 bg-card text-brand hover:bg-brand hover:text-white transition-colors flex items-center justify-center"
                       onClick={() => onRemove(index)}
                       title="Remove"
                     >
@@ -129,7 +129,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
                   )}
                   {onRotate && (
                     <button
-                      className="w-7 h-7 bg-card text-foreground hover:bg-foreground hover:text-background transition-colors flex items-center justify-center"
+                      className="w-11 h-11 bg-card text-foreground hover:bg-foreground hover:text-background transition-colors flex items-center justify-center"
                       onClick={() => onRotate(index)}
                       title="Rotate"
                     >
