@@ -23,7 +23,7 @@ const Hero = () => {
           <div>
             <p className="text-sm font-semibold text-brand">{greeting()}{user?.firstName ? `, ${user.firstName}` : ""}</p>
             <h1 className="mt-2 text-3xl font-bold leading-tight text-foreground sm:text-4xl" style={{ textWrap: "balance" } as React.CSSProperties}>
-              What do you need to do with a document today?
+              Work on your document today?
             </h1>
             <p className="mt-3 max-w-xl text-muted-foreground">
               Most tools work on your own computer or phone without uploading files. PDF to Word uses the FC head-office server.
