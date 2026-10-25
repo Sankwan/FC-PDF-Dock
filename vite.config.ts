@@ -1,3 +1,4 @@
+import { cpSync, mkdirSync } from "node:fs";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -8,6 +9,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig(({ mode }) => {
+  // Decoder binaries, standard fonts and CMaps must match the bundled
+  // PDF.js worker. Copy from the locked dependency for dev and production.
+  const pdfAssets = path.resolve(__dirname, "client/public/pdfjs-assets");
+  mkdirSync(pdfAssets, { recursive: true });
+  for (const directory of ["wasm", "cmaps", "standard_fonts", "iccs"]) {
+    cpSync(path.resolve(__dirname, "node_modules/pdfjs-dist", directory), path.join(pdfAssets, directory), { recursive: true });
+  }
+
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const appName = env.VITE_APP_NAME || "PDFDock";
   const orgName = env.VITE_ORG_NAME || "Forestry Commission";
@@ -46,7 +55,7 @@ export default defineConfig(({ mode }) => {
           // are NOT precached: they are runtime-cached the first time a tool
           // uses them, or all at once when staff press "Download tools for
           // offline use" (client/src/lib/offlinePrep.ts).
-          globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}"],
+          globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}", "pdfjs-assets/**/*"],
           // These folders' own JS glue would otherwise match "js" above.
           globIgnores: ["**/tesseract/**", "**/opencv/**", "**/fc/fc-logo-src.jpg"],
           // Sign-in and PDF to Word must always reach the server, never an

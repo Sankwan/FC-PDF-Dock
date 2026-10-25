@@ -165,7 +165,7 @@ const SignaturePad = ({
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">Pen</Label>
           <div className="w-24">
-            <Slider value={[penWidth]} min={1} max={8} step={1} onValueChange={(v) => setPenWidth(v[0])} />
+            <Slider aria-label="Pen width" value={[penWidth]} min={1} max={8} step={1} onValueChange={(v) => setPenWidth(v[0])} />
           </div>
         </div>
         <input

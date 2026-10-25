@@ -18,13 +18,17 @@ const Header = () => {
   const { resolvedTheme, setTheme } = useTheme();
   const { isStandalone } = useInstallPrompt();
   const { user, offline, signOut } = useAuth();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
     if (!menuOpen) return;
     const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !menuRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false);
+        if (e instanceof KeyboardEvent) triggerRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
@@ -79,6 +83,7 @@ const Header = () => {
               <button
                 type="button"
                 onClick={() => setMenuOpen((o) => !o)}
+                ref={triggerRef}
                 aria-label="Account and app settings"
                 aria-controls="app-settings"
                 aria-expanded={menuOpen}

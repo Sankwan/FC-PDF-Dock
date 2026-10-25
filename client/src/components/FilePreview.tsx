@@ -50,7 +50,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
 
   if (fileType === "pdf" && files.length === 1) {
     return (
-      <div className={`mb-6 overflow-hidden rounded-2xl border border-black/[0.08] bg-card/65 shadow-[0_24px_70px_-48px_rgba(0,0,0,0.5)] backdrop-blur-2xl ${className}`}>
+      <div className={`mb-6 overflow-hidden rounded-2xl border border-black/[0.08] bg-card/65 shadow-[0_24px_70px_-48px_rgba(0,0,0,0.5)]  ${className}`}>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-black/[0.06] bg-card/55 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <PdfIcon className="h-5 w-5" />
@@ -97,7 +97,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
   return (
     <div className={`border border-border mb-6 ${className}`}>
       <div className="bg-background border-b border-border px-4 py-2.5 flex justify-between items-center">
-        <h4 className="text-sm font-medium text-foreground">Selected Files ({files.length})</h4>
+        <h2 className="text-sm font-medium text-foreground">Selected Files ({files.length})</h2>
         {showControls && (
           <div className="flex items-center gap-3">
             {onAddMore && (
@@ -122,6 +122,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
                     <button
                       className="w-11 h-11 bg-card text-brand hover:bg-brand hover:text-white transition-colors flex items-center justify-center"
                       onClick={() => onRemove(index)}
+                      aria-label={`Remove image ${index + 1}`}
                       title="Remove"
                     >
                       <Trash size={12} />
@@ -131,6 +132,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
                     <button
                       className="w-11 h-11 bg-card text-foreground hover:bg-foreground hover:text-background transition-colors flex items-center justify-center"
                       onClick={() => onRotate(index)}
+                      aria-label={`Rotate image ${index + 1}`}
                       title="Rotate"
                     >
                       <RotateCw size={12} />

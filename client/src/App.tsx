@@ -107,14 +107,16 @@ function Gate() {
   return <Tools />;
 }
 
+function SessionWorkspace() {
+  const { user, status } = useAuth();
+  return <FileVaultProvider key={user?.email ?? status}><ScrollToTop /><Gate /></FileVaultProvider>;
+}
+
 function App() {
   return (
     <AuthProvider>
-      <FileVaultProvider>
-        <ScrollToTop />
-        <Gate />
-        <Toaster />
-      </FileVaultProvider>
+      <SessionWorkspace />
+      <Toaster />
     </AuthProvider>
   );
 }

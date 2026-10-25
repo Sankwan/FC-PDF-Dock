@@ -66,6 +66,8 @@ const UnlockPdfDialog = () => {
     notify();
     return () => {
       notify = null;
+      queue.forEach(request => request.resolve(null));
+      queue = [];
     };
   }, []);
 

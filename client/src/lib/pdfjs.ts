@@ -1,6 +1,6 @@
-import * as pdfjs from "pdfjs-dist";
+import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 // Bundle the matching worker from the same installed PDF.js version.
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -19,7 +19,7 @@ export const loadPdfDocument = async (source: File | ArrayBuffer | Uint8Array) =
   } else {
     bytes = new Uint8Array(source.slice(0));
   }
-  const task = pdfjs.getDocument({ data: bytes });
+  const task = pdfjs.getDocument({ data: bytes, wasmUrl: "/pdfjs-assets/wasm/", cMapUrl: "/pdfjs-assets/cmaps/", standardFontDataUrl: "/pdfjs-assets/standard_fonts/", iccUrl: "/pdfjs-assets/iccs/" });
   const doc = await task.promise;
   // PDF.js 6 moved worker teardown from the document proxy to its loading
   // task. Keep the app's explicit ownership/cleanup contract in one place.

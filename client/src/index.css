@@ -39,7 +39,7 @@
   --popover-foreground: 120 10% 4%;
 
   --border: 100 9% 88%;
-  --input: 100 9% 85%;
+  --input: 120 5% 50%;
   --ring: 126 45% 32%;
 
   --primary: var(--brand);
@@ -79,7 +79,7 @@
   --popover-foreground: 0 0% 95%;
 
   --border: 120 5% 22%;
-  --input: 120 5% 24%;
+  --input: 120 7% 52%;
   --ring: 126 45% 32%;
 
   --primary: var(--brand);
@@ -146,4 +146,10 @@
 @layer utilities {
   :root :is(input, select, textarea) { font-size: 1rem; }
   main p.text-sm { font-size: 1rem; line-height: 1.6; }
+}
+
+@layer utilities {
+  :root :is(input, textarea)::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
+  main h1 { text-wrap: balance; }
+  main h2, main h3 { text-wrap: pretty; }
 }

@@ -37,3 +37,11 @@ Scope: preserve the existing FC identity and improve the complete staff web/PWA 
 - Reviewed all 20 routes at phone and desktop widths (40 views), with no horizontal page overflow or unlabelled visible native text fields.
 - Re-ran detector: no findings. Carried explicit slider names, fine control contrast and staff-account draft isolation into the final polish pass.
 - Saved the interim assessment in docs/refinement-interim-audit.md.
+
+## 6. Polish
+
+- Completed slider names, preview-action labels, settings focus restoration, control boundary contrast, readable secondary text and consistent field sizing.
+- Added staff-specific draft keys, draft clearing on sign-out, workspace reset between accounts and object-URL cleanup. Rapid draft writes coalesce without resurrecting cleared work.
+- Matched updated PDF.js legacy browser worker, decoder binaries, standard fonts and CMaps; these local assets are included in PWA precaching. This preserves compatibility instead of assuming every phone supports the latest JavaScript APIs.
+- Added a GitHub Actions workflow for type checks, document tests, auth tests, dependency audit and production build.
+- Validation: TypeScript, 16 document/draft tests, 9 authentication tests and production builds passed. Production-build route matrix covered 20 routes × 5 viewport sizes × 2 themes (200 views), with no horizontal page overflow. Dark primary button colors and missing-route text were checked in-browser; corrupt-photo import shows a recoverable message. Exact final audit and device/deployment limits are recorded separately.

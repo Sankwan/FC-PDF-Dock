@@ -7,6 +7,7 @@ import ToolHeader from "@/components/ToolHeader";
 import SaveShareButtons from "@/components/SaveShareButtons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/context/Auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   FILTERS, applyFilter, canvasToBlob, detectDocument, fileToCanvas, fullQuad, loadOpenCv, rotateCanvas, warpDocument,
@@ -32,7 +33,7 @@ const CameraView = ({
   cv: any;
   count: number;
   lastThumb?: string;
-  onCapture: (canvas: HTMLCanvasElement, quad: Quad | null) => void;
+  onCapture: (canvas: HTMLCanvasElement, quad: Quad | null) => void | Promise<void>;
   onImport: () => void;
   onClose: () => void;
 }) => {
@@ -43,6 +44,22 @@ const CameraView = ({
   const [error, setError] = useState<string | null>(null);
   const [torch, setTorch] = useState<boolean | null>(null);
   const [flash, setFlash] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const cameraPanel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    cameraPanel.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const keys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab") return;
+      const buttons = Array.from(cameraPanel.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", keys);
+    return () => { document.removeEventListener("keydown", keys); previous?.focus(); };
+  }, [onClose]);
 
   useEffect(() => {
     let stopped = false;
@@ -109,26 +126,29 @@ const CameraView = ({
     }
   };
 
-  const capture = () => {
+  const capture = async () => {
+    if (capturing) return;
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
     const c = document.createElement("canvas");
     c.width = v.videoWidth;
     c.height = v.videoHeight;
     c.getContext("2d")!.drawImage(v, 0, 0);
-    setFlash(true);
-    setTimeout(() => setFlash(false), 140);
+    setCapturing(true);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setFlash(true); setTimeout(() => setFlash(false), 140);
+    }
     let q: Quad | null = null;
     try {
       q = detectDocument(cv, c, 720);
     } catch {
       q = null;
     }
-    onCapture(c, q);
+    try { await onCapture(c, q); } finally { setCapturing(false); c.width = c.height = 0; }
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black text-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+    <div ref={cameraPanel} role="dialog" aria-modal="true" aria-label="Document camera" className="fixed inset-0 z-[60] flex flex-col bg-black text-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div className="flex items-center justify-between px-4 py-3">
         <button type="button" onClick={onClose} aria-label="Close camera" className="grid h-11 w-11 place-items-center rounded-full bg-white/10"><X size={20} /></button>
         <span className="text-sm text-white/80">{quad ? "Page found. Hold steady" : "Point at a document"}</span>
@@ -141,7 +161,7 @@ const CameraView = ({
 
       <div className="relative flex-1 overflow-hidden">
         {error ? (
-          <div className="grid h-full place-items-center p-8 text-center text-sm text-white/80">{error}</div>
+          <div className="grid h-full place-items-center p-8 text-center text-sm text-white/80" role="alert">{error}</div>
         ) : (
           <>
             <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" />
@@ -170,7 +190,7 @@ const CameraView = ({
         <button
           type="button"
           onClick={capture}
-          disabled={Boolean(error)}
+          disabled={Boolean(error) || !dims.w || capturing}
           aria-label="Take photo"
           className="justify-self-center grid h-[72px] w-[72px] place-items-center rounded-full border-4 border-white disabled:opacity-40"
         >
@@ -345,6 +365,8 @@ const CornerEditor = ({
 
 const ScanDocument = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const draftScope = user?.email ?? "local-preview";
   const [cv, setCv] = useState<any>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
   const [pages, setPages] = useState<ScanPage[]>([]);
@@ -366,7 +388,7 @@ const ScanDocument = () => {
 
   useEffect(() => {
     let alive = true;
-    readScanDraft().then(draft => {
+    readScanDraft(draftScope).then(draft => {
       if (!alive) return;
       setPendingDraft(draft);
       setDraftReady(!draft);
@@ -380,11 +402,11 @@ const ScanDocument = () => {
     let alive = true;
     const hasWork = pages.length > 0 || Boolean(editing);
     setDraftStatus(hasWork ? "Saving draft on this device…" : "Scan drafts stay in this browser for recovery. Clear them when you finish on a shared device; drafts older than 24 hours are removed when you next open the scanner.");
-    writeScanDraft(hasWork ? { version: 1, savedAt: Date.now(), pages, editing, name, pageSize, searchable } : null)
+    writeScanDraft(hasWork ? { version: 1, savedAt: Date.now(), pages, editing, name, pageSize, searchable } : null, draftScope)
       .then(() => { if (alive && hasWork) setDraftStatus("Draft saved in this browser. Recovery is available for 24 hours. Clear the draft when you finish on a shared device."); })
       .catch(() => { if (alive) setDraftStatus("Draft could not be saved. Device storage may be full or blocked. Save your PDF before leaving this page."); });
     return () => { alive = false; };
-  }, [pages, editing, name, pageSize, searchable, draftReady]);
+  }, [pages, editing, name, pageSize, searchable, draftReady, draftScope]);
 
   const restoreDraft = () => {
     if (!pendingDraft) return;
@@ -418,6 +440,12 @@ const ScanDocument = () => {
   }, [cv]);
 
   const startEdit = async (canvas: HTMLCanvasElement, quad: Quad | null, fromCamera: boolean) => {
+    const pixels = pages.reduce((sum, page) => sum + page.photoW * page.photoH, 0) + canvas.width * canvas.height;
+    if (pages.length >= 30 || pixels > IMAGE_LIMITS.totalPixels || canvas.width * canvas.height > IMAGE_LIMITS.pixels) {
+      setImportError("This scan has reached its image limit. Save it, clear the draft and start a new scan.");
+      setStep("pages");
+      return;
+    }
     const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
     const lastFilter = pages[pages.length - 1]?.filter ?? "enhanced";
     const page: ScanPage = {
@@ -554,7 +582,7 @@ const ScanDocument = () => {
           cv={cv}
           count={pages.length}
           lastThumb={pages[pages.length - 1]?.resultUrl}
-          onCapture={(c, q) => startEdit(c, q, true)}
+          onCapture={async (c, q) => { try { await startEdit(c, q, true); } catch { setImportError("Could not capture this page. Try again or choose a photo."); setStep("pages"); } }}
           onImport={() => importRef.current?.click()}
           onClose={() => setStep("pages")}
         />

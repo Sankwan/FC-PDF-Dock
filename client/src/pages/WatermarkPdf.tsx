@@ -161,6 +161,7 @@ const WatermarkPdf = () => {
                           <span className="text-xs text-muted-foreground font-mono">{opacity}%</span>
                         </div>
                         <Slider
+                          aria-label="Watermark opacity"
                           min={5}
                           max={60}
                           step={1}
@@ -179,6 +180,7 @@ const WatermarkPdf = () => {
                           <span className="text-xs text-muted-foreground font-mono">{fontSize}pt</span>
                         </div>
                         <Slider
+                          aria-label="Watermark font size"
                           min={20}
                           max={80}
                           step={2}

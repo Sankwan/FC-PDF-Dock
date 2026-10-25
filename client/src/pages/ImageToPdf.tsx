@@ -194,11 +194,11 @@ const ImageToPdf = () => {
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                           <Label htmlFor="custom-width" className="text-xs font-semibold text-muted-foreground">Width (mm)</Label>
-                          <Input id="custom-width" type="number" value={customWidth} onChange={e => setCustomWidth(Number(e.target.value))} min={1} className="mt-1 border-border" />
+                          <Input id="custom-width" type="number" value={customWidth} onChange={e => setCustomWidth(Number(e.target.value))} min={10} max={2000} className="mt-1 border-border" />
                         </div>
                         <div>
                           <Label htmlFor="custom-height" className="text-xs font-semibold text-muted-foreground">Height (mm)</Label>
-                          <Input id="custom-height" type="number" value={customHeight} onChange={e => setCustomHeight(Number(e.target.value))} min={1} className="mt-1 border-border" />
+                          <Input id="custom-height" type="number" value={customHeight} onChange={e => setCustomHeight(Number(e.target.value))} min={10} max={2000} className="mt-1 border-border" />
                         </div>
                       </div>
                     )}
@@ -213,7 +213,7 @@ const ImageToPdf = () => {
                         <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Image Quality</Label>
                         <span className="text-xs text-muted-foreground font-mono">{quality}%</span>
                       </div>
-                      <Slider min={1} max={100} step={1} value={[quality]} onValueChange={v => setQuality(v[0])} />
+                      <Slider aria-label="Image quality" min={10} max={100} step={1} value={[quality]} onValueChange={v => setQuality(v[0])} />
                       <p className="mt-2 text-xs text-muted-foreground">Lower quality creates smaller photo pages. At 100%, pages use lossless PNG images. Transparent areas are placed on white.</p>
                     </div>
                   </div>

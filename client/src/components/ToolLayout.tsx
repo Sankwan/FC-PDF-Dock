@@ -31,7 +31,7 @@ const ToolLayout: React.FC<ToolLayoutProps> = ({ children, title, description, c
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="bg-card/90 backdrop-blur-sm border border-border rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-card/90  border border-border rounded-2xl overflow-hidden shadow-sm">
             {children}
           </div>
         </div>

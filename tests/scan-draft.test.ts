@@ -43,3 +43,14 @@ test('manual document areas stay inside page bounds after oversized and negative
   assert.ok(tiny.x + tiny.w <= 1 && tiny.y + tiny.h <= 1);
   assert.ok(tiny.w > 0 && tiny.h > 0);
 });
+
+test('staff accounts cannot read or clear one another’s local draft', async () => {
+  await writeScanDraft(draft('Staff A'), 'staff-a');
+  await writeScanDraft(draft('Staff B'), 'staff-b');
+  assert.equal((await readScanDraft('staff-a'))?.name, 'Staff A');
+  assert.equal((await readScanDraft('staff-b'))?.name, 'Staff B');
+  await writeScanDraft(null, 'staff-a');
+  assert.equal(await readScanDraft('staff-a'), null);
+  assert.equal((await readScanDraft('staff-b'))?.name, 'Staff B');
+  await writeScanDraft(null, 'staff-b');
+});

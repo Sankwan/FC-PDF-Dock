@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { brand } from "@/brand";
+import { brand, features } from "@/brand";
 import { ORG } from "@/fc/org";
 import { tools } from "@/components/ToolsSection";
 
@@ -20,7 +20,7 @@ const Footer = () => (
         </div>
 
         <nav aria-label="All tools" className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
-          {tools.map((t) => (
+          {tools.filter(t => features.pdfToWord || t.id !== "pdf-to-word").map((t) => (
             <Link key={t.id} href={t.link} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-brand">
               {t.title}
             </Link>
@@ -32,7 +32,7 @@ const Footer = () => (
         <span className="font-bold uppercase tracking-wide text-brand">Vision: </span>
         {ORG.vision}
       </p>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground/80">
+      <p className="mt-2 text-center text-[11px] text-muted-foreground">
         For authorised FC staff. Built on open-source software; see NOTICE.md for licences.
       </p>
     </div>
