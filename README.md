@@ -78,6 +78,8 @@ this repository in the same Railway project and environment:
    AUTH_SECRET=<a random secret of at least 32 characters>
    PUBLIC_URL=https://<your-frontend-domain>
    STAFF_EMAIL_DOMAIN=fc.gov.gh
+   PORT=8100
+   HOST=::
    MAIL_MODE=console
    DEMO_EMAIL=demo.user@fc.gov.gh
    DEMO_CODE=<your chosen six-digit test code>
@@ -99,6 +101,27 @@ or a production deployment. The frontend Railway domain is publicly
 reachable unless you separately restrict access. PDF to Word is disabled in
 this test setup; production PDF to Word should use the head-office deployment
 described in [`deploy/headoffice/README.md`](deploy/headoffice/README.md).
+
+### Railway: `host not found in upstream "auth"`
+
+The image defaults to `AUTH_SERVICE_URL=http://auth:8100` for Docker networks.
+Railway does not start the head-office Compose services automatically. Create
+the auth service as above, then set the **frontend** variable to its actual
+private hostname, for example `AUTH_SERVICE_URL=http://pdfdock-auth.railway.internal:8100`.
+Use the name shown in that auth service's Networking settings, not the example
+name unless it matches. Both services must be in the same project/environment.
+The auth `PORT=8100` must match the port in this URL; `HOST=::` supports Railway's
+IPv6 private networking as well as IPv4.
+
+Nginx resolves the auth hostname per request using the container's DNS and
+refreshes it after backend redeploys. A missing backend returns an API error
+instead of crashing the frontend. Verify `/api/auth/health` on the frontend
+domain returns `{"status":"ok"}` before testing sign-in. A working homepage
+alone does not prove authentication is configured.
+
+Run `npm run test:deployment` with Docker running to exercise Nginx startup
+without auth, followed by backend recovery and API request forwarding. The
+quality workflow runs this check alongside the app build.
 
 ## How the pieces fit
 

@@ -27,6 +27,7 @@ jobs:
         working-directory: services/auth
       - run: npm audit --omit=dev
       - run: npm run build
+      - run: npm run test:deployment
       - uses: actions/upload-artifact@v7
         with:
           name: fc-pdfdock-web
