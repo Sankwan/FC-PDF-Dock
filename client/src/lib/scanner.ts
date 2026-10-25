@@ -18,14 +18,17 @@ export const loadOpenCv = (): Promise<CV> => {
   if (cvPromise) return cvPromise;
   cvPromise = new Promise<CV>((resolve, reject) => {
     const w = window as any;
+    const timer = window.setTimeout(() => reject(new Error("The scanner took too long to load. Check your connection and retry.")), 60_000);
+    const succeed = (cv: CV) => { clearTimeout(timer); resolve(cv); };
+    const fail = (error: unknown) => { clearTimeout(timer); reject(error); };
     const finish = async () => {
       try {
         let cv = w.cv;
         if (cv && typeof cv.then === "function") cv = await cv;
         if (!cv?.Mat) await new Promise<void>((r) => (cv.onRuntimeInitialized = () => r()));
-        resolve(cv);
+        succeed(cv);
       } catch (err) {
-        reject(err);
+        fail(err);
       }
     };
     if (w.cv) {
@@ -38,10 +41,12 @@ export const loadOpenCv = (): Promise<CV> => {
     script.onload = finish;
     script.onerror = () => {
       cvPromise = null;
-      reject(new Error("The scanner engine couldn't load. Check your connection and try again."));
+      script.remove();
+      fail(new Error("The scanner engine couldn't load. Check your connection and try again."));
     };
     document.head.appendChild(script);
   });
+  cvPromise = cvPromise.catch(error => { cvPromise = null; throw error; });
   return cvPromise;
 };
 

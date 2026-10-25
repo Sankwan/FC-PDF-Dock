@@ -53,6 +53,7 @@
     "@types/utif": "^3.0.6",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "fake-indexeddb": "^6.2.6",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "postcss": "^8.4.47",

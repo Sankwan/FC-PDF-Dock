@@ -14,19 +14,8 @@ import {
 } from "@/lib/scanner";
 import { PAGE_SIZES, buildScanPdf, defaultScanName, type PageSize } from "@/lib/scanExport";
 
-interface ScanPage {
-  id: string;
-  photo: Blob; // original photo (JPEG), kept so the page can be re-cropped
-  photoW: number;
-  photoH: number;
-  quad: Quad;
-  filter: ScanFilter;
-  rotation: number;
-  result?: Blob;
-  resultUrl?: string;
-  resultW?: number;
-  resultH?: number;
-}
+import { readScanDraft, writeScanDraft, type ScanDraft, type ScanPage } from "@/lib/scanDraft";
+import { decodeImagePages, IMAGE_ACCEPT, IMAGE_LIMITS } from "@/lib/addons/images";
 
 type Step = "pages" | "camera" | "adjust" | "done";
 
@@ -201,13 +190,14 @@ const CameraView = ({
 /* ------------------------------------------------------------------ */
 
 const CornerEditor = ({
-  cv, page, onSave, onCancel, saveLabel,
+  cv, page, onSave, onCancel, saveLabel, busy,
 }: {
   cv: any;
   page: ScanPage;
   onSave: (quad: Quad, filter: ScanFilter, rotation: number) => void;
   onCancel: () => void;
   saveLabel: string;
+  busy: boolean;
 }) => {
   const [url] = useState(() => URL.createObjectURL(page.photo));
   const [quad, setQuad] = useState<Quad>(page.quad);
@@ -250,7 +240,7 @@ const CornerEditor = ({
   const zoomH = zoomW * (H / W);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <fieldset disabled={busy} className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crop size={16} className="text-brand" /> Adjust the corners</h2>
         <div className="flex gap-2">
@@ -292,7 +282,17 @@ const CornerEditor = ({
                 (e.target as Element).setPointerCapture?.(e.pointerId);
                 setActive(i);
               }}
-              role="slider"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                const delta = e.shiftKey ? 10 : 1;
+                const shifts: Record<string, [number, number]> = { ArrowLeft: [-delta, 0], ArrowRight: [delta, 0], ArrowUp: [0, -delta], ArrowDown: [0, delta] };
+                if (!shifts[e.key]) return;
+                e.preventDefault();
+                const [dx, dy] = shifts[e.key];
+                setQuad(q => q.map((point, j) => j === i ? { x: Math.max(0, Math.min(W, point.x + dx)), y: Math.max(0, Math.min(H, point.y + dy)) } : point) as Quad);
+              }}
+              role="button"
+              aria-describedby="crop-keyboard-help"
               aria-label={["Top left corner", "Top right corner", "Bottom right corner", "Bottom left corner"][i]}
             />
           ))}
@@ -315,6 +315,7 @@ const CornerEditor = ({
         )}
       </div>
 
+      <p id="crop-keyboard-help" className="mt-3 text-sm text-muted-foreground">Drag a corner, or focus it and use the arrow keys. Hold Shift for larger steps.</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look</span>
         {FILTERS.map((f) => (
@@ -334,7 +335,7 @@ const CornerEditor = ({
           <Check size={16} /> {saveLabel}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 };
 
@@ -356,13 +357,55 @@ const ScanDocument = () => {
   const [building, setBuilding] = useState<{ done: number; total: number; stage: string } | null>(null);
   const [result, setResult] = useState<File | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const [pendingDraft, setPendingDraft] = useState<ScanDraft | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftStatus, setDraftStatus] = useState("Checking for a saved draft…");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState("");
+  const pageUrls = useRef(new Set<string>());
+
+  useEffect(() => {
+    let alive = true;
+    readScanDraft().then(draft => {
+      if (!alive) return;
+      setPendingDraft(draft);
+      setDraftReady(!draft);
+      setDraftStatus(draft ? "A previous scan is available on this device." : "Drafts are saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device.");
+    }).catch(() => { if (alive) { setDraftReady(true); setDraftStatus("Draft recovery is unavailable in this browser. Save your PDF before leaving this page."); } });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    let alive = true;
+    const hasWork = pages.length > 0 || Boolean(editing);
+    setDraftStatus(hasWork ? "Saving draft on this device…" : "Drafts are saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device.");
+    writeScanDraft(hasWork ? { version: 1, savedAt: Date.now(), pages, editing, name, pageSize, searchable } : null)
+      .then(() => { if (alive && hasWork) setDraftStatus("Draft saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device."); })
+      .catch(() => { if (alive) setDraftStatus("Draft could not be saved. Device storage may be full or blocked. Save your PDF before leaving this page."); });
+    return () => { alive = false; };
+  }, [pages, editing, name, pageSize, searchable, draftReady]);
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    setPages(pendingDraft.pages.map(p => ({ ...p, resultUrl: p.result ? URL.createObjectURL(p.result) : undefined })));
+    setEditing(pendingDraft.editing);
+    setStep(pendingDraft.editing ? "adjust" : "pages");
+    setName(pendingDraft.name); setPageSize(pendingDraft.pageSize); setSearchable(pendingDraft.searchable);
+    setPendingDraft(null); setDraftReady(true);
+  };
   const hasCamera = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && window.isSecureContext;
 
   useEffect(() => {
     loadOpenCv().then(setCv).catch((e) => setEngineError(e.message));
   }, []);
 
-  useEffect(() => () => pages.forEach((p) => p.resultUrl && URL.revokeObjectURL(p.resultUrl)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const next = new Set(pages.flatMap(p => p.resultUrl ? [p.resultUrl] : []));
+    pageUrls.current.forEach(url => { if (!next.has(url)) URL.revokeObjectURL(url); });
+    pageUrls.current = next;
+  }, [pages]);
+  useEffect(() => () => pageUrls.current.forEach(url => URL.revokeObjectURL(url)), []);
 
   const render = useCallback(async (p: ScanPage): Promise<ScanPage> => {
     const photo = await fileToCanvas(p.photo);
@@ -370,7 +413,7 @@ const ScanDocument = () => {
     const filtered = applyFilter(cv, flat, p.filter);
     const final = rotateCanvas(filtered, p.rotation);
     const blob = p.filter === "bw" ? await canvasToBlob(final, "image/png") : await canvasToBlob(final, "image/jpeg", 0.85);
-    if (p.resultUrl) URL.revokeObjectURL(p.resultUrl);
+
     return { ...p, result: blob, resultUrl: URL.createObjectURL(blob), resultW: final.width, resultH: final.height };
   }, [cv]);
 
@@ -386,32 +429,38 @@ const ScanDocument = () => {
   };
 
   const importPhotos = async (files: File[]) => {
-    if (!files.length || !cv) return;
-    // One photo: open the corner editor. Several: auto-crop them all and
-    // let the person fix any page afterwards from the page list.
-    if (files.length === 1) {
-      const canvas = await fileToCanvas(files[0]);
-      startEdit(canvas, detectDocument(cv, canvas, 720), false);
-      return;
-    }
-    setProcessing(true);
+    if (!files.length || !cv || processing || !draftReady) return;
+    setProcessing(true); setImportError(null);
+    const added: ScanPage[] = [];
     try {
-      const added: ScanPage[] = [];
-      for (const f of files) {
-        const canvas = await fileToCanvas(f);
-        const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
-        const q = detectDocument(cv, canvas, 720) ?? fullQuad(canvas.width, canvas.height, 0.02);
-        added.push(await render({ id: pid(), photo, photoW: canvas.width, photoH: canvas.height, quad: q, filter: "enhanced", rotation: 0 }));
-      }
-      setPages((p) => [...p, ...added]);
-      setResult(null);
-      setStep("pages");
+      const decoded = await decodeImagePages(files, setImportStatus);
+      const existingPixels = pages.reduce((sum, p) => sum + p.photoW * p.photoH, 0);
+      const canvases = [];
+      let pixels = existingPixels;
+      try {
+        for (const file of decoded) {
+          const canvas = await fileToCanvas(file);
+          canvases.push(canvas);
+          pixels += canvas.width * canvas.height;
+        }
+        if (pages.length + canvases.length > 30 || pixels > IMAGE_LIMITS.totalPixels)
+          throw new Error("Keep each scan to 30 pages and 80 megapixels. Save this PDF, then start another scan.");
+        if (canvases.length === 1) {
+          await startEdit(canvases[0], detectDocument(cv, canvases[0], 720), false);
+        } else {
+          for (const canvas of canvases) {
+            const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
+            const q = detectDocument(cv, canvas, 720) ?? fullQuad(canvas.width, canvas.height, 0.02);
+            added.push(await render({ id: pid(), photo, photoW: canvas.width, photoH: canvas.height, quad: q, filter: "enhanced", rotation: 0 }));
+          }
+          setPages(p => [...p, ...added]); setStep("pages");
+        }
+        setResult(null);
+      } finally { canvases.forEach(c => { c.width = c.height = 0; }); }
     } catch (err) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Couldn't read a photo", description: "Try a JPG or PNG image." });
-    } finally {
-      setProcessing(false);
-    }
+      added.forEach(p => p.resultUrl && URL.revokeObjectURL(p.resultUrl));
+      setImportError(err instanceof Error ? err.message : "Could not read this photo. Choose a JPG or PNG copy and try again.");
+    } finally { setProcessing(false); setImportStatus(""); }
   };
 
   const saveEdit = async (quad: Quad, filter: ScanFilter, rotation: number) => {
@@ -431,7 +480,8 @@ const ScanDocument = () => {
     }
   };
 
-  const movePage = (i: number, d: number) =>
+  const movePage = (i: number, d: number) => {
+    setResult(null);
     setPages((prev) => {
       const j = i + d;
       if (j < 0 || j >= prev.length) return prev;
@@ -439,6 +489,7 @@ const ScanDocument = () => {
       [next[i], next[j]] = [next[j], next[i]];
       return next;
     });
+  };
 
   const setAllFilters = async (filter: ScanFilter) => {
     setProcessing(true);
@@ -447,6 +498,8 @@ const ScanDocument = () => {
       for (const p of pages) next.push(p.filter === filter ? p : await render({ ...p, filter }));
       setPages(next);
       setResult(null);
+    } catch {
+      toast({ variant: "destructive", title: "Could not apply this look", description: "Your pages are unchanged. Try editing one page at a time." });
     } finally {
       setProcessing(false);
     }
@@ -471,7 +524,7 @@ const ScanDocument = () => {
   };
 
   const reset = () => {
-    pages.forEach((p) => p.resultUrl && URL.revokeObjectURL(p.resultUrl));
+    setEditing(null);
     setPages([]);
     setResult(null);
     setName(defaultScanName());
@@ -482,7 +535,7 @@ const ScanDocument = () => {
     <input
       ref={importRef}
       type="file"
-      accept="image/*"
+      accept={IMAGE_ACCEPT}
       multiple
       className="hidden"
       onChange={(e) => {
@@ -519,23 +572,34 @@ const ScanDocument = () => {
           description="Scan letters, receipts and forms with your phone camera. Pages are straightened and cleaned up automatically, then saved as one PDF you can keep or share."
         />
 
+        <p role="status" className="mb-4 max-w-3xl text-sm text-muted-foreground">{draftStatus}</p>
+        {pendingDraft && <div className="mb-5 max-w-3xl rounded-xl border border-border bg-card p-4">
+          <p className="font-semibold">Continue your previous scan?</p>
+          <p className="mt-1 text-sm text-muted-foreground">{pendingDraft.pages.length} saved pages{pendingDraft.editing ? " and a page being edited" : ""}. This draft is stored only in this browser.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={restoreDraft} className="min-h-11 rounded-md bg-brand px-4 font-semibold text-white">Restore scan</button>
+            <button type="button" onClick={() => { setPendingDraft(null); setDraftReady(true); }} className="min-h-11 rounded-md border border-border px-4">Discard saved draft</button>
+          </div>
+        </div>}
+        {importError && <p role="alert" className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{importError}</p>}
         {engineError && (
-          <div className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{engineError}</div>
+          <div role="alert" className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{engineError}<button type="button" onClick={() => { setEngineError(null); loadOpenCv().then(setCv).catch(e => setEngineError(e.message)); }} className="ml-3 min-h-11 font-semibold underline">Retry scanner</button></div>
         )}
 
         {step === "adjust" && editing && cv ? (
           <div className="max-w-3xl">
             <CornerEditor
+              busy={processing}
               cv={cv}
               page={editing.page}
               saveLabel={editing.isNew ? (editing.fromCamera ? "Keep and scan next" : "Add page") : "Save changes"}
               onSave={saveEdit}
               onCancel={() => { setStep(editing.isNew && editing.fromCamera ? "camera" : "pages"); setEditing(null); }}
             />
-            {processing && <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Straightening and cleaning up…</p>}
+            {processing && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Straightening and cleaning up…</p>}
           </div>
         ) : (
-          <div className="max-w-5xl space-y-4">
+          <fieldset disabled={Boolean(building) || processing || !draftReady} className="min-w-0 max-w-5xl space-y-4">
             {pages.length === 0 ? (
               <div className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
                 <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-tint text-brand"><ScanLine size={28} /></span>
@@ -555,7 +619,7 @@ const ScanDocument = () => {
                     <ImagePlus size={18} /> Choose photos
                   </button>
                 </div>
-                {processing && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Processing photos…</p>}
+                {processing && <p role="status" className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> {importStatus || "Processing photos…"}</p>}
                 {!hasCamera && <p className="mt-4 text-xs text-muted-foreground">Live camera needs the secure (https) address on a phone or a computer with a camera. You can still use photos.</p>}
               </div>
             ) : (
@@ -632,14 +696,14 @@ const ScanDocument = () => {
 
                   {building && (
                     <div className="mt-4">
-                      <div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{building.stage}…</span><span className="tabular-nums">{building.done} / {building.total}</span></div>
+                      <div role="status" className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{building.stage}…</span><span className="tabular-nums">{building.done} / {building.total}</span></div>
                       <Progress value={(building.done / Math.max(1, building.total)) * 100} className="h-1.5" />
                     </div>
                   )}
 
                   {result ? (
                     <div className="mt-4 rounded-lg border border-brand/40 bg-brand-tint p-4">
-                      <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><FileCheck2 size={17} className="text-brand" /> {result.name} is ready</p>
+                      <p role="status" className="flex items-center gap-2 text-sm font-semibold text-foreground"><FileCheck2 size={17} className="text-brand" /> {result.name} is ready</p>
                       <SaveShareButtons file={result} className="mt-3" />
                     </div>
                   ) : (
@@ -650,11 +714,11 @@ const ScanDocument = () => {
                       </button>
                     </div>
                   )}
-                  <button type="button" onClick={reset} className="mt-3 text-sm font-medium text-muted-foreground hover:text-destructive">Start a new scan</button>
+                  <button type="button" onClick={reset} className="mt-3 text-sm font-medium text-muted-foreground hover:text-destructive">Clear draft and start a new scan</button>
                 </div>
               </>
             )}
-          </div>
+          </fieldset>
         )}
       </div>
     </section>

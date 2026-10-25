@@ -58,7 +58,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
           </div>
           {showControls && (
             <button
-              className="text-muted-foreground hover:text-brand transition-colors focus:outline-none"
+              className="text-muted-foreground hover:text-brand transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               onClick={() => onRemoveAll?.()}
               aria-label="Remove file"
             >
@@ -101,11 +101,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({
         {showControls && (
           <div className="flex items-center gap-3">
             {onAddMore && (
-              <button className="text-xs text-brand hover:text-brand-dark font-medium focus:outline-none transition-colors" onClick={onAddMore}>
+              <button className="text-xs text-brand hover:text-brand-dark font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors" onClick={onAddMore}>
                 + Add More
               </button>
             )}
-            <button className="text-muted-foreground hover:text-brand focus:outline-none transition-colors" onClick={() => onRemoveAll?.()} aria-label="Clear all files">
+            <button className="text-muted-foreground hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors" onClick={() => onRemoveAll?.()} aria-label="Clear all files">
               <Trash size={14} />
             </button>
           </div>

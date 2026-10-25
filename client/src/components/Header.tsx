@@ -79,7 +79,8 @@ const Header = () => {
               <button
                 type="button"
                 onClick={() => setMenuOpen((o) => !o)}
-                aria-haspopup="menu"
+                aria-label="Account and app settings"
+                aria-controls="app-settings"
                 aria-expanded={menuOpen}
                 className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-white hover:bg-white/10"
               >
@@ -91,27 +92,27 @@ const Header = () => {
               </button>
 
               {menuOpen && (
-                <div role="menu" className="absolute right-0 mt-2 w-72 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">
+                <div id="app-settings" className="absolute right-0 mt-2 w-72 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">
                   {user && (
                     <div className="border-b border-border px-3 pb-3 pt-2">
                       <div className="truncate text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</div>
                       <div className="truncate text-xs text-muted-foreground">{user.email}</div>
                     </div>
                   )}
-                  <button role="menuitem" type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
+                  <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
                     <CloudDownload size={16} className="text-brand" /> Download tools for offline use
                   </button>
                   {!isStandalone && (
-                    <button role="menuitem" type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>
+                    <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>
                       <Download size={16} className="text-brand" /> Install the app on this device
                     </button>
                   )}
-                  <button role="menuitem" type="button" className={menuItem} onClick={() => setTheme(isDark ? "light" : "dark")}>
+                  <button type="button" className={menuItem} onClick={() => setTheme(isDark ? "light" : "dark")}>
                     {isDark ? <Sun size={16} className="text-brand" /> : <Moon size={16} className="text-brand" />}
                     {isDark ? "Light mode" : "Dark mode"}
                   </button>
                   {features.authRequired && user && (
-                    <button role="menuitem" type="button" className={`${menuItem} border-t border-border`} onClick={() => { setMenuOpen(false); signOut(); }}>
+                    <button type="button" className={`${menuItem} border-t border-border`} onClick={() => { setMenuOpen(false); signOut(); }}>
                       <LogOut size={16} className="text-muted-foreground" /> Sign out
                     </button>
                   )}

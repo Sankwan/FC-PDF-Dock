@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import RectangleControls, { fitRectangle } from "@/components/RectangleControls";
+import { imageCanvas } from "@/lib/addons/images";
 import FileUpload from "@/components/FileUpload";
 import BackToTools from "@/components/BackToTools";
 import { FileText, Download, PenLine, Trash2, Plus, X, Undo2, Loader2 } from "lucide-react";
@@ -151,6 +153,7 @@ const SignaturePad = ({
     <div>
       <canvas
         ref={canvasRef}
+        aria-label="Draw a signature with a mouse, pen or touch. You can also choose a signature image below."
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={stop}
@@ -410,6 +413,22 @@ const SignPdf = () => {
                         cursor: "move",
                         touchAction: "none",
                       }}
+                      tabIndex={0}
+                      role="group"
+                      aria-label="Signature placement. Use arrow keys to move; use the placement fields to resize."
+                      onKeyDown={e => {
+                        if (e.target !== e.currentTarget) return;
+                        const step = e.shiftKey ? .05 : .01;
+                        const delta: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+                        if (!delta[e.key]) return;
+                        e.preventDefault();
+                        const [dx, dy] = delta[e.key];
+                        setPlacements(prev => prev.map(item => {
+                          if (item.id !== p.id) return item;
+                          const rect = fitRectangle({ x: item.xRatio + dx, y: item.yRatio + dy, w: item.widthRatio, h: item.heightRatio });
+                          return { ...item, xRatio: rect.x, yRatio: rect.y };
+                        }));
+                      }}
                       onPointerDown={(e) => onPointerDownBox(e, p.id, "move")}
                     >
                       <img src={p.dataUrl} alt="Signature" className="w-full h-full object-fill pointer-events-none" />
@@ -438,8 +457,20 @@ const SignPdf = () => {
               <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <PenLine size={14} className="text-brand" />
-                  <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">Draw signature</h4>
+                  <h2 className="text-base font-semibold text-foreground">Create your signature</h2>
                 </div>
+                <label className="mb-4 block text-sm font-medium">Or choose a signature image
+                  <input type="file" accept="image/png,image/jpeg" className="mt-2 block w-full min-w-0 text-sm" onChange={async e => {
+                    const file = e.currentTarget.files?.[0]; e.currentTarget.value = "";
+                    if (!file) return;
+                    try {
+                      if (file.size > 10 * 1024 * 1024) throw new Error("Choose an image smaller than 10 MB.");
+                      const canvas = await imageCanvas(file);
+                      setSignature({ dataUrl: canvas.toDataURL("image/png"), aspect: canvas.width / canvas.height });
+                      canvas.width = canvas.height = 0;
+                    } catch (error) { toast({ variant: "destructive", title: "Could not open signature image", description: error instanceof Error ? error.message : "Choose a PNG or JPG image." }); }
+                  }} />
+                </label>
                 <SignaturePad onSave={(dataUrl, aspect) => { setSignature({ dataUrl, aspect }); toast({ title: "Signature saved", description: "Now place it on the page." }); }} />
               </div>
 
@@ -455,9 +486,12 @@ const SignPdf = () => {
                 </div>
               )}
 
+              {pagePlacements.map((p, i) => <RectangleControls key={p.id} label={`Signature ${i + 1} placement`}
+                value={{ x: p.xRatio, y: p.yRatio, w: p.widthRatio, h: p.heightRatio }}
+                onChange={rect => setPlacements(prev => prev.map(item => item.id === p.id ? { ...item, xRatio: rect.x, yRatio: rect.y, widthRatio: rect.w, heightRatio: rect.h } : item))} />)}
               <Alert className="bg-card/80 border border-border rounded-xl">
                 <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-                  Drag the signature to move it, and pull the green corner to resize it. Nothing is uploaded.
+                  Drag the signature to move it, or use the placement fields. You can also focus the signature and move it with arrow keys. Nothing is uploaded.
                   The signed file records the date and time it was signed, so anyone can later check it with
                   "Check a signed PDF" and see if it was changed afterwards. This is a visible signature, not a
                   certificate-based digital signature.

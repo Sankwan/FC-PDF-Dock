@@ -27,6 +27,16 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      {
+        name: "fc-html-defaults",
+        transformIndexHtml: {
+          order: "pre",
+          handler: (html) => {
+            const values: Record<string, string> = { VITE_APP_NAME: appName, VITE_ORG_NAME: orgName, VITE_APP_DESCRIPTION: appDescription, VITE_THEME_COLOR: themeColor };
+            return html.replace(/%VITE_(?:APP_NAME|ORG_NAME|APP_DESCRIPTION|THEME_COLOR)%/g, key => values[key.slice(1, -1)].replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!)));
+          },
+        },
+      },
       VitePWA({
         registerType: "autoUpdate",
         includeAssets: ["icons/favicon-64.png", "icons/apple-touch-icon.png", "fc/fc-logo.png", "fc/fc-mark.png"],
