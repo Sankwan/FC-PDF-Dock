@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
@@ -78,8 +79,8 @@ export default function PdfForms() {
         <div className="max-w-2xl space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6">
           {!file ? (
             busy ? (
-              <p role="status" className="text-sm">
-                Reading PDF…
+              <p role="status" className="flex items-center gap-2 text-sm">
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" /> Reading PDF…
               </p>
             ) : (
               <FileUpload
@@ -224,7 +225,7 @@ export default function PdfForms() {
                     className="h-11 rounded-md bg-brand px-5 text-sm font-semibold text-white disabled:opacity-50"
                     onClick={save}
                   >
-                    {busy ? "Saving…" : "Create filled PDF"}
+                    {busy ? <><Loader2 size={16} className="mr-2 inline animate-spin" aria-hidden="true" />Saving…</> : "Create filled PDF"}
                   </button>
                   {json && (
                     <SaveShareButtons

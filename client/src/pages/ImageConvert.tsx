@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
@@ -177,8 +178,8 @@ export default function ImageConvert() {
             </>
           )}
           {status && (
-            <p role="status" className="text-sm text-brand">
-              {status}
+            <p role="status" className="flex items-center gap-2 text-sm text-brand">
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />{status}
             </p>
           )}
           {error && (

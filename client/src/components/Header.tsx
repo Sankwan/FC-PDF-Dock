@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, ChevronDown, CloudDownload, Download, LogOut, Moon, Sun, WifiOff } from "lucide-react";
+import { ArrowLeft, ChevronDown, CloudDownload, Download, LogOut, Moon, Sun, WifiOff, CircleHelp } from "lucide-react";
+import { ICT_HELP_URL } from "@/lib/support";
 import { brand, features } from "@/brand";
 import { useTheme } from "@/components/ui/theme-provider";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useAuth } from "@/context/Auth";
 import InstallGuide from "@/components/InstallGuide";
+import ToolSearch from "@/components/ToolSearch";
 import OfflineDialog from "@/components/OfflineDialog";
 
 const initials = (first?: string, last?: string) => `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "FC";
@@ -63,13 +65,17 @@ const Header = () => {
                 <img src={brand.logo} alt="" className="h-full w-full object-contain" />
               </span>
               <span className="min-w-0 leading-tight">
-                <span className="block truncate text-[10.5px] font-semibold uppercase tracking-[0.16em] text-brand-logo">{brand.orgName}</span>
+                <span className="block truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-logo">{brand.orgName}</span>
                 <span className="block truncate text-lg font-bold text-white">{brand.name}</span>
               </span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ToolSearch />
+            <a href={ICT_HELP_URL} aria-label="Help: email ICT" title="Help — email ICT" className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-lg px-3 text-white hover:bg-white/10">
+              <CircleHelp size={20} aria-hidden="true" /><span className="hidden text-sm font-medium sm:inline">Help</span>
+            </a>
             {offline && (
               <span className="hidden items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 sm:inline-flex" title="The head-office server can't be reached. Tools that run on this device still work.">
                 <WifiOff size={13} /> Offline
@@ -107,6 +113,7 @@ const Header = () => {
                   <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
                     <CloudDownload size={16} className="text-brand" /> Set up offline access
                   </button>
+                  <a href={ICT_HELP_URL} className={menuItem} onClick={() => setMenuOpen(false)}><CircleHelp size={16} className="text-brand" /> Help — email ICT</a>
                   {!isStandalone && (
                     <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>
                       <Download size={16} className="text-brand" /> Install the app on this device

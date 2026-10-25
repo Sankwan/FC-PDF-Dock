@@ -505,7 +505,7 @@ const SignPdf = () => {
                   className="bg-brand text-white hover:bg-brand-dark rounded-lg text-sm font-semibold"
                 >
                   <Download size={14} className="mr-1.5" />
-                  {isSaving ? "Preparing…" : `Download signed PDF (${placements.length})`}
+                  {isSaving ? <><Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />Preparing…</> : `Download signed PDF (${placements.length})`}
                 </Button>
                 <Button variant="outline" onClick={reset} className="border-border rounded-lg text-sm">
                   Start over

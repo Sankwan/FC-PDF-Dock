@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
@@ -115,7 +116,7 @@ export default function QrTools() {
               onClick={generate}
               className="h-11 rounded-md bg-brand px-5 text-sm font-semibold text-white disabled:opacity-50"
             >
-              Create QR code
+              {busy ? <><Loader2 size={16} className="mr-2 inline animate-spin" aria-hidden="true" />Processing…</> : "Create QR code"}
             </button>
             {preview && (
               <img
@@ -140,8 +141,8 @@ export default function QrTools() {
               />
             )}
             {busy && (
-              <p role="status" className="text-sm">
-                Processing on this device…
+              <p role="status" className="flex items-center gap-2 text-sm">
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" /> Processing on this device…
               </p>
             )}
             {decoded !== null && (

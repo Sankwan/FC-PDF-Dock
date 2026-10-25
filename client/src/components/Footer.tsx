@@ -1,5 +1,6 @@
+import { ICT_HELP_URL, ICT_EMAIL } from "@/lib/support";
 import { Link } from "wouter";
-import { brand, features, conversionServer } from "@/brand";
+import { brand } from "@/brand";
 import { ORG } from "@/fc/org";
 import { tools } from "@/components/ToolsSection";
 
@@ -12,15 +13,17 @@ const Footer = () => (
             <img src={brand.logo} alt="Forestry Commission" className="h-12 w-auto" />
           </div>
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">
-            {brand.name} is Forestry Commission's document toolkit for staff. Most tools process files on your device. PDF to Word, when enabled, uses the {conversionServer}.
+            {brand.name} is Forestry Commission's document toolkit for staff. Scan, edit and convert files on this device.
           </p>
+          <a href={ICT_HELP_URL} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4">Help — contact ICT</a>
+          <p className="type-caption break-all text-muted-foreground">{ICT_EMAIL}</p>
           <p className="mt-3 text-xs text-muted-foreground">
             {ORG.name} · {ORG.headOffice} · {ORG.ministry}
           </p>
         </div>
 
         <nav aria-label="All tools" className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
-          {tools.filter(t => features.pdfToWord || t.id !== "pdf-to-word").map((t) => (
+          {tools.map((t) => (
             <Link key={t.id} href={t.link} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-brand">
               {t.title}
             </Link>

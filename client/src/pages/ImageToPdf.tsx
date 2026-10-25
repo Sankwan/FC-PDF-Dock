@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Images } from "lucide-react";
+import { Download, Images, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
 import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
@@ -141,7 +141,7 @@ const ImageToPdf = () => {
 
         <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
           <fieldset className="min-w-0 p-6" disabled={isConverting || isLoadingPreview}>
-            {isLoadingPreview && imageFiles.length === 0 ? <p role="status" className="text-sm">Opening image pages on this device…</p> : imageFiles.length === 0 ? (
+            {isLoadingPreview && imageFiles.length === 0 ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 size={16} className="animate-spin" aria-hidden="true" />Opening image pages on this device…</p> : imageFiles.length === 0 ? (
               <FileUpload
                 accept={IMAGE_ACCEPT}
                 maxSizeInMB={20}
@@ -243,7 +243,7 @@ const ImageToPdf = () => {
                 {showOptions && !pdfResult && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
                     <Button onClick={handleConvertToPdf} disabled={imageFiles.length === 0 || isConverting || isLoadingPreview} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                      {isConverting ? "Converting..." : "Convert to PDF"}
+                      {isConverting ? <><Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />Converting…</> : "Convert to PDF"}
                     </Button>
                     <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-md">
                       Reset

@@ -6,9 +6,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Self-hosted (npm @fontsource-variable/public-sans), never Google Fonts.
-        sans: ['"Public Sans Variable"', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        heading: ['"Public Sans Variable"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        // Same device-native stack used by iHatePDF. No font download required.
+        sans: ['ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        heading: ['ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",

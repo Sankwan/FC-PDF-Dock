@@ -34,7 +34,7 @@ export const ENGINES: Engine[] = [
   {
     id: "ocr",
     label: "Text recognition (OCR)",
-    usedBy: "OCR PDF, Redact PDF, Scan document",
+    usedBy: "OCR PDF, PDF to Word scans, Redact PDF, Scan document",
     urls: [
       "/tesseract/worker.min.js",
       "/tesseract/core/tesseract-core-simd-lstm.wasm.js",

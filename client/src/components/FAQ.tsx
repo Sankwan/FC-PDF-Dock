@@ -1,4 +1,3 @@
-import { conversionServer, features } from "@/brand";
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
 
@@ -7,7 +6,7 @@ const faqs = [
     id: "upload",
     question: "Do my files get uploaded anywhere?",
     answer:
-      `Most tools process files in your browser. When enabled, PDF to Word sends your PDF to the ${conversionServer}, which deletes its temporary working files after the request finishes.${features.demoMode ? " Use sample documents during this public test." : ""}`,
+      "Document tools process files in your browser. Required engines must be loaded before offline use. Signing in to a staff account still needs the sign-in service.",
   },
   {
     id: "size",
@@ -25,7 +24,7 @@ const faqs = [
     id: "account",
     question: "What do you keep about me?",
     answer:
-      "Your staff account uses your official email address. Scanner drafts are saved in this browser for recovery, so clear them when you finish on a shared device. Drafts older than 24 hours are removed when you next open the scanner. PDFDock does not keep a history of the documents you process.",
+      "Your staff account uses your official email address. Scanner drafts are saved in this browser for recovery, so clear them when you finish on a shared device. Drafts older than 24 hours are removed when you next open the scanner. Tool-opening counts stay in this browser; they do not include document names or contents. You can clear tool usage on the tools page.",
   },
 ];
 

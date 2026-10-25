@@ -11,7 +11,7 @@ WORKDIR /app
 ARG VITE_APP_NAME="PDFDock"
 ARG VITE_APP_SHORT_NAME="FC PDFDock"
 ARG VITE_ORG_NAME="Forestry Commission"
-ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server."
+ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Convert, scan and prepare documents on your device."
 ARG VITE_THEME_COLOR="#0E2516"
 ARG VITE_AUTH_REQUIRED="true"
 ARG VITE_DEMO_MODE="false"

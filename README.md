@@ -28,7 +28,7 @@ kept for the account; the app does not record a tool-use history. The scanner st
 | Scan & convert | **Scan document**: phone camera scanner with edge detection, straightening, shadow removal, B&W; save or share (WhatsApp, email) | device |
 | | **Convert images**: HEIC/HEIF, multipage TIFF, BMP and browser-supported images to JPG/PNG/WebP; multiple outputs as ZIP | device |
 | | Image to PDF (including all TIFF/HEIC pages), PDF to Image, OCR PDF, Word to PDF | device |
-| | PDF to Word | head-office server |
+| | PDF to Word | browser: editable text / page images, local English OCR |
 
 Locked PDFs are detected when added to any tool; the person is asked for the
 password (or, for files that only have editing restrictions, asked to
@@ -78,23 +78,21 @@ or database is needed for this mode. “Leave demo” ends the tab's session.
 
 Demo access is deliberately public, not an access-control mechanism. It is
 stored separately in sessionStorage, never as a verified staff profile, and
-creates no backend cookie. A banner identifies demo sessions. PDF to Word is
-disabled by default in demo builds. It can be explicitly enabled for a
-separate Railway converter pilot; see [the step-by-step setup](docs/deployment/railway-pilot.md). Use sample
-documents. Cached scanner drafts still follow the scanner's disclosed retention.
+creates no backend cookie. A banner identifies demo sessions. PDF to Word runs on the device in both demo and staff builds. Use sample
+documents during the public pilot. Cached scanner drafts still follow the scanner's disclosed retention.
 
 For internal rollout, set `VITE_DEMO_MODE=false`, keep `VITE_AUTH_REQUIRED=true`,
-rebuild, and configure the real auth and PDF-to-Word services as documented in
+rebuild, and configure the real auth service as documented in
 `deploy/headoffice/`. Demo mode defaults to false in code and Docker builds.
 
-### Add PDF-to-Word to the public pilot
+### PDF-to-Word in the public pilot
 
-Follow [Railway pilot with PDF-to-Word](docs/deployment/railway-pilot.md). It
-adds a private converter service and a server-only proxy key. Enable both
-`VITE_PDF2WORD_ENABLED=true` (build) and `PDF2WORD_PUBLIC_PILOT=true` (runtime),
-then rebuild. PDFs sent to this test converter are processed on Railway, so
-use sample documents. The production head-office authentication/network
-checks are kept in their separate deployment template.
+The frontend now converts on-device. Rebuild and deploy the frontend; no
+converter service, conversion API key or enabling flag is needed. Existing
+`PDF2WORD_PUBLIC_PILOT` and `VITE_PDF2WORD_ENABLED` settings are unnecessary for
+this UI. The legacy service/proxy remains optional for older deployments.
+OCR for scanned pages needs the local OCR engine to have loaded or been
+prepared through the app menu before going offline.
 
 ### Optional: test the real sign-in service
 
@@ -231,9 +229,21 @@ printed letterhead paper. Note: the in-app Word to PDF engine (office2pdf)
 does not draw tables inside Word headers, so for Word letters on the
 letterhead, use Word's own "Save as PDF" or the Letterhead tool's PDF output.
 
-**PDF to Word** is the only server-side tool: there is no browser library
-that rebuilds editable Word layout from a PDF with real fidelity. See
-`services/pdf-to-word/README.md`.
+**PDF to Word** now uses an independent browser converter built with PDF.js
+and docx. Editable mode reconstructs paragraphs, headings and simple numeric
+tables; page-image mode preserves appearance without editable text. Scans use
+the existing local English Tesseract engine. Complex layouts, fonts, pictures
+and reading order may need manual correction. The old optional Python service
+remains in the repository but is not called by this frontend. No converter
+server, URL, key or `VITE_PDF2WORD_ENABLED` flag is required. Prepare OCR assets
+before working offline. Staff authentication still uses its own service.
+
+**Tool discovery.** Search from the header (Ctrl/Command+K) or the tools page.
+Most-used shortcuts count tool openings, not
+completed conversions. Preferences are scoped to the signed-in profile on
+this browser; no document names, contents or timestamps are recorded. Use
+Clear usage to reset counts. Storage
+failures fall back to the current session.
 
 **Word to PDF** uses office2pdf compiled to WebAssembly (~47 MB, downloaded the
 first time the tool is used or via "Download tools for offline use"). Complex

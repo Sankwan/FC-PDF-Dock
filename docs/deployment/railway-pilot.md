@@ -1,3 +1,6 @@
+> Current frontend: PDF-to-Word now runs locally. The converter setup below
+> is retained for legacy server deployments and is not required by the current UI.
+
 # Railway pilot with PDF-to-Word
 
 This is a temporary **public test**, with demo credentials and sample documents.

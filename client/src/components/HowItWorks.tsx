@@ -1,8 +1,7 @@
-import { conversionServer } from "@/brand";
 import { ShieldCheck } from "lucide-react";
 
 const steps = [
-  { title: "Choose a file", desc: "Pick a file or drag it in. Most tools open it on this device; PDF to Word explains its server processing first." },
+  { title: "Choose a file", desc: "Pick a file or drag it in. Document tools process the file on this device." },
   { title: "Set it up", desc: "Decide what you want to do with the document. You see a preview first." },
   { title: "Save or share", desc: "Download the result, or on a phone, share it straight to WhatsApp or email." },
 ];
@@ -30,8 +29,7 @@ const HowItWorks = () => (
         <div>
           <h3 className="font-semibold text-white">Private by design</h3>
           <p className="mt-1 text-sm text-white/70">
-            Documents are processed inside your browser. The only exception is PDF to Word, which sends the file to
-            the {conversionServer}. Its temporary working files are deleted after the request finishes. Scanner drafts stay in this browser until you clear them; recovery expires after 24 hours.
+            Document conversion and editing run inside your browser. Set up the required engines before working offline. Scanner drafts stay in this browser until you clear them; recovery expires after 24 hours.
           </p>
         </div>
       </div>

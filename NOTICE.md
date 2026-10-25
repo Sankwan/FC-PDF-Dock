@@ -66,8 +66,8 @@ package's published build output, used unmodified.
 | Component | Used for | Licence |
 |---|---|---|
 | [OpenCV.js](https://opencv.org) via [@techstark/opencv-js](https://github.com/TechStark/opencv-js) | Scan document: edge detection, perspective correction, filters. `client/public/opencv/opencv.js` is the package's build output, unmodified (`npm run vendor:opencv`). | Apache-2.0 (`client/public/opencv/LICENSE`) |
-| [docx](https://github.com/dolanmiu/docx) | Letterhead: Word (.docx) letterhead and letters | MIT |
-| [Public Sans](https://public-sans.digital.gov) via [@fontsource-variable/public-sans](https://fontsource.org) | App typeface, self-hosted | SIL Open Font License 1.1 |
+| [docx](https://github.com/dolanmiu/docx) | Letterhead and local PDF-to-Word output | MIT |
+| [Public Sans](https://public-sans.digital.gov) via [@fontsource-variable/public-sans](https://fontsource.org) | Former app typeface; retained dependency, no longer loaded by the interface | SIL Open Font License 1.1 |
 | [nodemailer](https://nodemailer.com) | services/auth: sending sign-in codes | MIT-0 |
 | [jpeg-js](https://github.com/jpeg-js/jpeg-js), [pngjs](https://github.com/pngjs/pngjs) | Build-time only: generating the FC logo and app icons | BSD-3-Clause, MIT |
 
@@ -93,3 +93,6 @@ Copies of the packages' published licence notices are shipped at
 `client/public/licenses/addons.txt`. The HEIC bundle also contains upstream
 third-party code and its embedded copyright notices, retained in the published
 package. No decoder code is modified by PDFDock.
+
+The browser PDF-to-Word converter is independently implemented using PDF.js,
+docx and the existing Tesseract engine. No iHatePDF source code is included.

@@ -32,7 +32,7 @@
 .auth-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #487d36; }
 .auth-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: 'intro form' 'art form'; column-gap: clamp(48px, 7vw, 108px); align-content: center; padding-block: 24px 40px; }
 .auth-intro { grid-area: intro; }
-.auth-intro h1 { font-size: clamp(42px, 4.6vw, 66px); font-weight: 450; line-height: 1.05; letter-spacing: -.04em; text-wrap: balance; }
+.auth-intro h1 { font-size: clamp(42px, 4.6vw, 66px); font-weight: 450; line-height: 1.05; letter-spacing: -.025em; text-wrap: balance; }
 .auth-intro h1 span { color: #547843; }
 .dark .auth-intro h1 span { color: #adca8c; }
 .auth-intro > p { margin-top: 20px; color: var(--auth-muted); font-size: 17px; line-height: 1.65; }

@@ -11,7 +11,7 @@ export const brand = {
   orgName: env.VITE_ORG_NAME || "Forestry Commission",
   description:
     env.VITE_APP_DESCRIPTION ||
-    "Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server.",
+    "Document tools for Forestry Commission staff. Convert, scan and prepare documents on your device.",
   logo: "/fc/fc-logo.png",
   mark: "/fc/fc-mark.png",
 };
@@ -21,7 +21,8 @@ export const features = {
   demoMode,
   authRequired: (env.VITE_AUTH_REQUIRED ?? "true") !== "false",
   staffEmailDomain: (env.VITE_STAFF_EMAIL_DOMAIN || "fc.gov.gh").toLowerCase(),
-  pdfToWord: (env.VITE_PDF2WORD_ENABLED ?? (demoMode ? "false" : "true")) === "true",
+  // Local PDF-to-Word is always available. The old flag only described the server converter.
+  pdfToWord: true,
 };
 
 export const conversionServer = demoMode ? "Railway test server" : "FC conversion server";

@@ -16,7 +16,7 @@ FC PDFDock helps staff complete everyday document tasks in one organization-bran
 
 ## Positioning
 
-An FC-specific document toolkit combining official branding and letterhead workflows with practical PDF, image and scanning tools. Most processing runs on the staff member's own device. Do not claim that every feature is offline or that files are never uploaded: PDF-to-Word currently uses an optional server service.
+An FC-specific document toolkit combining official branding and letterhead workflows with practical PDF, image and scanning tools. Most processing runs on the staff member's own device. Document conversion runs on-device, including PDF-to-Word. Staff authentication requires the sign-in service; offline processing requires cached application and engine assets.
 
 ## Operating Context
 
@@ -30,7 +30,7 @@ An FC-specific document toolkit combining official branding and letterhead workf
 - Existing routes cover scanning, local OCR, letterhead, merge/split/page organization, compression, images, watermarking, protection, redaction, signatures, Word conversion, PDF properties, PDF forms and QR codes.
 - Capability descriptions record implementation, not universal quality guarantees. Physical-phone scanner reliability and document-conversion fidelity require representative testing.
 - Process files on-device wherever practical. Clearly identify any server processing in the relevant workflow.
-- PDF-to-Word currently has a server-backed implementation. A browser-only converter is under consideration and must not be presented as shipped.
+- PDF-to-Word has a browser implementation with editable text/simple tables and page-image output, plus local English OCR for scans. Complex layouts and fonts may require correction. The optional legacy server converter remains in the repository but is not called by the frontend.
 - AI analysis and a shared document library are proposed features, not current capabilities. Inference location, model choice, storage, permissions and retention remain open decisions.
 - The platform remains web/PWA in this product record. Separate native applications have not been approved as a product commitment.
 - The FC checkout and the original public v1 deployment are distinct. Do not describe local work as deployed without verification.

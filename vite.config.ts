@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
   const appShortName = env.VITE_APP_SHORT_NAME || "FC PDFDock";
   const appDescription =
     env.VITE_APP_DESCRIPTION ||
-    "Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server.";
+    "Document tools for Forestry Commission staff. Convert, scan and prepare documents on your device.";
   // Keep in sync with --chrome in client/src/index.css
   const themeColor = env.VITE_THEME_COLOR || "#0E2516";
 
@@ -58,8 +58,7 @@ export default defineConfig(({ mode }) => {
           globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}", "pdfjs-assets/**/*"],
           // These folders' own JS glue would otherwise match "js" above.
           globIgnores: ["**/tesseract/**", "**/opencv/**", "**/fc/fc-logo-src.jpg"],
-          // Sign-in and PDF to Word must always reach the server, never an
-          // offline fallback page.
+          // API routes must never receive the offline HTML fallback.
           navigateFallbackDenylist: [/^\/api\//],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [

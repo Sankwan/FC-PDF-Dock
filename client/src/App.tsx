@@ -4,8 +4,10 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/Layout";
+import ToolPageTransition from "@/components/ToolPageTransition";
 import { FileVaultProvider } from "@/context/FileVault";
 import { AuthProvider, useAuth } from "@/context/Auth";
+import { ToolPreferencesProvider } from "@/context/ToolPreferences";
 import { features } from "@/brand";
 import UnlockPdfDialog from "@/components/UnlockPdfDialog";
 import Home from "@/pages/Home";
@@ -46,8 +48,8 @@ function ScrollToTop() {
 }
 
 const PageLoading = () => (
-  <div className="grid min-h-[50vh] place-items-center text-muted-foreground">
-    <Loader2 className="animate-spin" size={22} aria-label="Loading" />
+  <div role="status" className="flex min-h-[50vh] items-center justify-center gap-3 text-muted-foreground">
+    <Loader2 className="animate-spin" size={22} aria-hidden="true" /><span>Opening tool…</span>
   </div>
 );
 
@@ -55,6 +57,7 @@ function Tools() {
   return (
     <Layout>
       <Suspense fallback={<PageLoading />}>
+        <ToolPageTransition>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/merge-pdfs" component={MergePdf} />
@@ -78,6 +81,7 @@ function Tools() {
           <Route path="/pdf-to-word" component={PdfToWord} />
           <Route component={NotFound} />
         </Switch>
+        </ToolPageTransition>
       </Suspense>
       <UnlockPdfDialog />
     </Layout>
@@ -109,7 +113,8 @@ function Gate() {
 
 function SessionWorkspace() {
   const { user, status } = useAuth();
-  return <FileVaultProvider key={user?.email ?? status}><ScrollToTop /><Gate /></FileVaultProvider>;
+  const scope = user?.email ?? status;
+  return <ToolPreferencesProvider key={scope} scope={scope}><FileVaultProvider><ScrollToTop /><Gate /></FileVaultProvider></ToolPreferencesProvider>;
 }
 
 function App() {

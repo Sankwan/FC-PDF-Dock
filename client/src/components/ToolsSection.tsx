@@ -1,9 +1,12 @@
 import { Link } from "wouter";
 import {
-  ArrowRight, Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, Server, FilePenLine, ListChecks, QrCode, Image, type LucideIcon,
+  Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, FilePenLine, ListChecks, QrCode, Image, type LucideIcon,
 } from "lucide-react";
-import { features } from "@/brand";
+import { useState } from "react";
+import { Search, Clock3 } from "lucide-react";
+import { useToolPreferences } from "@/context/ToolPreferences";
+import { matchesTool } from "@/lib/toolPreferences";
 
 export interface Tool {
   id: string;
@@ -13,7 +16,6 @@ export interface Tool {
   icon: LucideIcon;
   group: "organise" | "convert" | "official";
   isNew?: boolean;
-  serverTool?: boolean;
 }
 
 export const tools: Tool[] = [
@@ -30,7 +32,7 @@ export const tools: Tool[] = [
   { id: "image-to-pdf", title: "Image to PDF", description: "Turn photos and images into a PDF.", link: "/image-to-pdf", icon: ImagePlus, group: "convert" },
   { id: "pdf-to-image", title: "PDF to Image", description: "Save PDF pages as JPG, PNG or WebP images.", link: "/pdf-to-image", icon: Images, group: "convert" },
   { id: "word-to-pdf", title: "Word to PDF", description: "Convert .docx documents to PDF on this device.", link: "/word-to-pdf", icon: FileType2, group: "convert" },
-  { id: "pdf-to-word", title: "PDF to Word", description: "Turn a PDF into an editable Word document. Head office only for now.", link: "/pdf-to-word", icon: FileText, group: "convert", serverTool: true },
+  { id: "pdf-to-word", title: "PDF to Word", description: "Create editable text or page images in Word, on this device.", link: "/pdf-to-word", icon: FileText, group: "convert" },
   { id: "ocr-pdf", title: "OCR PDF", description: "Make scanned PDFs searchable so you can find and copy text.", link: "/ocr-pdf", icon: TextSearch, group: "convert" },
 
   { id: "letterhead", title: "Letterhead", description: "Put the official FC letterhead on a letter, or get a blank letterhead for Word.", link: "/letterhead", icon: FileBadge2, group: "official", isNew: true },
@@ -46,53 +48,25 @@ const GROUPS: { id: Tool["group"]; title: string; blurb: string }[] = [
   { id: "convert", title: "Scan & convert", blurb: "Paper, photos, Word and PDF" },
 ];
 
-const visibleTools = tools.filter((t) => features.pdfToWord || t.id !== "pdf-to-word");
+export const visibleTools = tools;
 
 const ToolCard = ({ tool }: { tool: Tool }) => {
   const Icon = tool.icon;
-  return (
-    <Link
-      href={tool.link}
-      className="group relative flex gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-    >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-tint text-brand transition-colors group-hover:bg-brand group-hover:text-white">
-        <Icon size={20} strokeWidth={1.9} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="text-[15px] font-semibold text-foreground">{tool.title}</span>
-          {tool.isNew && <span className="rounded-full bg-brand-logo/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand">New</span>}
-          {tool.serverTool && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" title="Uses the FC head-office server">
-              <Server size={10} /> Head office
-            </span>
-          )}
-        </span>
-        <span className="mt-1 block text-sm leading-snug text-muted-foreground">{tool.description}</span>
-      </span>
-      <ArrowRight size={16} className="mt-1 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
-    </Link>
-  );
+  return <Link href={tool.link} className="group flex min-h-40 min-w-0 flex-col gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/60 sm:min-h-0 sm:flex-row sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-brand-tint text-brand"><Icon size={20} strokeWidth={1.9} /></span>
+      <span className="min-w-0 flex-1"><span className="type-tool-title block">{tool.title}</span><span className="type-support mt-1.5 hidden text-muted-foreground sm:block">{tool.description}</span></span>
+  </Link>;
 };
 
-const ToolsSection = () => (
-  <section id="tools" className="scroll-mt-16 bg-background py-12">
-    <div className="container mx-auto space-y-10 px-4 sm:px-6 lg:px-8">
-      {GROUPS.map((g) => (
-        <div key={g.id}>
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-2">
-            <h2 className="text-lg font-bold text-foreground">{g.title}</h2>
-            <p className="text-sm text-muted-foreground">{g.blurb}</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {visibleTools.filter((t) => t.group === g.id).map((t) => (
-              <ToolCard key={t.id} tool={t} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
-export default ToolsSection;
+export default function ToolsSection() {
+  const [query, setQuery] = useState("");
+  const { preferences, clearUsage } = useToolPreferences();
+  const filtered = visibleTools.filter(t => matchesTool(t, query));
+  const frequent = visibleTools.filter(t => preferences.visits[t.id]).sort((a, b) => preferences.visits[b.id] - preferences.visits[a.id]).slice(0, 4);
+  const shortcuts = (list: Tool[]) => <div className="flex flex-wrap gap-2">{list.map(t => <Link key={t.id} href={t.link} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:border-brand hover:text-brand"><t.icon size={16} />{t.title}</Link>)}</div>;
+  return <section id="tools" className="scroll-mt-20 bg-background py-10"><div className="container mx-auto space-y-8 px-4 sm:px-6 lg:px-8">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="type-section-title">Your tools</h2><p className="type-support mt-1 text-muted-foreground">Find the right tool for your document.</p></div><div className="relative w-full sm:max-w-sm"><label htmlFor="tool-search" className="sr-only">Search all tools</label><Search size={19} className="pointer-events-none absolute left-3 top-3.5 text-muted-foreground"/><input id="tool-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tools, e.g. Word or scan" className="min-h-12 w-full rounded-lg border border-input bg-card py-3 pl-10 pr-3" /></div></div>
+    {!query.trim() && <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="type-label flex items-center gap-2"><Clock3 size={17}/>Most used</h3>{frequent.length > 0 && <button type="button" onClick={clearUsage} className="type-support underline underline-offset-4 text-muted-foreground">Clear usage</button>}</div>{frequent.length ? shortcuts(frequent) : <p className="type-support text-muted-foreground">Tools you open most often will appear here.</p>}<p className="type-caption text-muted-foreground">Tool usage stays in this browser. Document names and contents are not recorded.</p></div>}
+    {query.trim() ? <div><p role="status" className="type-support mb-4 text-muted-foreground">{filtered.length} tool{filtered.length === 1 ? "" : "s"} found</p>{filtered.length ? <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-3">{filtered.map(t => <ToolCard key={t.id} tool={t}/>)}</div> : <div className="py-8"><h3 className="type-tool-title">No matching tools</h3><p className="type-support mt-2 text-muted-foreground">Try a task such as scan, merge or Word.</p><button type="button" onClick={() => setQuery("")} className="mt-3 text-brand underline underline-offset-4">Clear search</button></div>}</div> : GROUPS.map(g => <div key={g.id}><div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3"><h3 className="type-section-title">{g.title}</h3><p className="type-support text-muted-foreground">{g.blurb}</p></div><div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-3">{visibleTools.filter(t => t.group === g.id).map(t => <ToolCard key={t.id} tool={t}/>)}</div></div>)}
+  </div></section>;
+}

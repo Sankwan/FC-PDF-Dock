@@ -1,3 +1,4 @@
+import { ICT_HELP_URL } from "@/lib/support";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, Check, FileText, Loader2, Mail, ScanLine, ShieldCheck, WifiOff } from "lucide-react";
@@ -146,7 +147,7 @@ const AuthPage = ({ fromLink = false }: { fromLink?: boolean }) => {
       <a href="#sign-in-form" className="auth-skip">Skip to sign in</a>
       <header className="auth-header">
         <div className="auth-brand"><img src={brand.logo} alt="Forestry Commission logo" width="76" height="54" /><span><strong>{brand.shortName}</strong><span>{brand.orgName}</span></span></div>
-        <span className="auth-status">{features.demoMode ? "Pilot testing" : "Staff workspace"}</span>
+        <a href={ICT_HELP_URL} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold underline underline-offset-4" aria-label="Help: email ICT">Help</a>
       </header>
       <main className="auth-main">
         <section className="auth-intro" aria-labelledby="auth-title">
@@ -190,7 +191,7 @@ const AuthPage = ({ fromLink = false }: { fromLink?: boolean }) => {
             </p>}
           </form>
           {demo && <div className="auth-demo-details"><div><strong>Use these demo details</strong><button type="button" onClick={fillDemo}>Fill demo details <ArrowRight size={14} aria-hidden="true" /></button></div><p><span>{DEMO_EMAIL}</span><span>Code: <b>{DEMO_CODE}</b></span></p><p className="auth-demo-note">Public test access · Use sample documents.</p></div>}
-          <p className="auth-privacy"><ShieldCheck size={18} aria-hidden="true" /><span>{demo ? "Demo access opens the tools on this device. It doesn’t create a staff account or connect to FC records." : "Most tools process documents on this device. PDF to Word, when enabled, uses the conversion server."}</span></p>
+          <p className="auth-privacy"><ShieldCheck size={18} aria-hidden="true" /><span>{demo ? "Demo access opens the tools on this device. It doesn’t create a staff account." : "Document tools process files on this device. Staff sign-in uses the sign-in service."}</span></p>
         </section>
       </main>
       <footer className="auth-footer"><span>Built for {brand.orgName} staff.</span><span>Photo: <a href="https://commons.wikimedia.org/wiki/File:Kakum_National_Park,_Ghana.jpg" target="_blank" rel="noreferrer">ZSM</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a> · cropped</span></footer>
