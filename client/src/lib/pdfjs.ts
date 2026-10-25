@@ -1,5 +1,5 @@
 import * as pdfjs from "pdfjs-dist";
-// Bundled worker (CDN copies of pdf.worker.js do not exist for v5 — it is .mjs)
+// Bundle the matching worker from the same installed PDF.js version.
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -19,7 +19,11 @@ export const loadPdfDocument = async (source: File | ArrayBuffer | Uint8Array) =
   } else {
     bytes = new Uint8Array(source.slice(0));
   }
-  return pdfjs.getDocument({ data: bytes }).promise;
+  const task = pdfjs.getDocument({ data: bytes });
+  const doc = await task.promise;
+  // PDF.js 6 moved worker teardown from the document proxy to its loading
+  // task. Keep the app's explicit ownership/cleanup contract in one place.
+  return Object.assign(doc, { destroy: () => task.destroy() });
 };
 
 /**
@@ -46,8 +50,12 @@ export const renderPdfPageToCanvas = async (
  */
 export const renderPdfThumbnail = async (file: File, scale = 1): Promise<string> => {
   const pdf = await loadPdfDocument(file);
-  const canvas = await renderPdfPageToCanvas(pdf, 1, scale);
-  return canvas.toDataURL("image/jpeg", 0.8);
+  try {
+    const canvas = await renderPdfPageToCanvas(pdf, 1, scale);
+    const url = canvas.toDataURL("image/jpeg", 0.8);
+    canvas.width = canvas.height = 0;
+    return url;
+  } finally { await pdf.destroy(); }
 };
 
 /**

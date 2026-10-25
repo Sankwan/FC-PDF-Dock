@@ -1,4 +1,3 @@
-import { pdfjs } from "./pdfjs";
 
 export type LockState = "none" | "restrictions" | "password";
 
@@ -21,17 +20,17 @@ const hasEncryptKey = (bytes: Uint8Array) => {
 export const inspectPdfLock = async (file: File): Promise<LockState> => {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!hasEncryptKey(bytes)) return "none";
+  const { pdfjs } = await import("./pdfjs");
   const task = pdfjs.getDocument({ data: bytes });
   try {
-    const doc = await task.promise;
-    await doc.destroy();
+    await task.promise;
     return "restrictions";
   } catch (err: any) {
     if (err?.name === "PasswordException") return "password";
     // Damaged file: let the tool report it in its own words.
     return "none";
   } finally {
-    task.destroy();
+    await task.destroy();
   }
 };
 
