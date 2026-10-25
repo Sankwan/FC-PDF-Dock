@@ -105,7 +105,7 @@ const Header = () => {
                     </div>
                   )}
                   <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
-                    <CloudDownload size={16} className="text-brand" /> Download tools for offline use
+                    <CloudDownload size={16} className="text-brand" /> Set up offline access
                   </button>
                   {!isStandalone && (
                     <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>

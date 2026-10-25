@@ -30,7 +30,7 @@ const Hero = () => {
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><HardDrive size={15} className="text-brand" /> Files stay on this device</li>
-              <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Offline after tool downloads</li>
+              <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Offline access available</li>
               <li className="flex items-center gap-2"><Server size={15} className="text-brand" /> PDF to Word: head office only</li>
             </ul>
           </div>
