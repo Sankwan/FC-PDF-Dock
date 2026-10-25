@@ -45,3 +45,10 @@ Scope: preserve the existing FC identity and improve the complete staff web/PWA 
 - Matched updated PDF.js legacy browser worker, decoder binaries, standard fonts and CMaps; these local assets are included in PWA precaching. This preserves compatibility instead of assuming every phone supports the latest JavaScript APIs.
 - Added a GitHub Actions workflow for type checks, document tests, auth tests, dependency audit and production build.
 - Validation: TypeScript, 16 document/draft tests, 9 authentication tests and production builds passed. Production-build route matrix covered 20 routes × 5 viewport sizes × 2 themes (200 views), with no horizontal page overflow. Dark primary button colors and missing-route text were checked in-browser; corrupt-photo import shows a recoverable message. Exact final audit and device/deployment limits are recorded separately.
+
+## Final audit after Polish
+
+- Final production route matrix repeated: 200 views, zero horizontal overflow.
+- Final production scanner export invalidation, two-page restoration, clearing and corrupt-photo feedback passed.
+- Final compression radio arrow behavior passed; detector returned an empty result.
+- Final scoped score: 16/20. See docs/refinement-final-audit.md for evidence, tradeoffs and the remaining physical-device and hosting checks.
