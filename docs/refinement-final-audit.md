@@ -46,3 +46,9 @@ Each phase was saved as a local commit on `codex/impeccable-refinement`. The rep
 Railway dashboard access currently reaches a GitHub login screen. No deployment has been completed. For hosted staff testing, follow the existing README Railway setup: frontend Docker service plus private auth service, persistent auth volume, correct PUBLIC_URL and AUTH_SERVICE_URL, secure cookies, and PDF-to-Word disabled until its backend is deployed. Use configured staff email delivery for a real rollout; fixed demo codes belong only to a disposable test environment.
 
 Before broad staff rollout, test one real iPhone and one representative Android phone: rear camera, permission denied/retry, photos including HEIC, 10–20 pages, shadows/small print, portrait/landscape, phone lock/app switching, draft recovery, downloaded-engine offline use and save/share. Include a keyboard and screen-reader pass and confirm hosted sign-in, logout isolation and production security headers.
+
+### Publication attempt
+
+Publication was attempted after the final audit. GitHub's connected integration rejected both tree creation and branch creation with HTTP 403 `Resource not accessible by integration`. The normal Git push also failed because no usable HTTPS credentials were available; the GitHub CLI's saved token is invalid. No branch, pull request or deployment was published by this run. The full checkpoint history remains saved locally on `codex/impeccable-refinement`.
+
+The Railway browser tab is open at the GitHub sign-in step. Re-authentication is required before the hosted rollout can proceed. Source files, tests, workflow and deployment instructions are ready locally.
