@@ -26,7 +26,7 @@ const Hero = () => {
               What do you need to do with a document today?
             </h1>
             <p className="mt-3 max-w-xl text-muted-foreground">
-              Every tool here works on your own computer or phone. Your files are not uploaded, stored or seen by anyone else.
+              Most tools work on your own computer or phone without uploading files. PDF to Word uses the FC head-office server.
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><HardDrive size={15} className="text-brand" /> Files stay on this device</li>

@@ -27,6 +27,10 @@ import OrganizePdf from "@/pages/OrganizePdf";
 const RedactPdf = lazy(() => import("@/pages/RedactPdf"));
 const ScanDocument = lazy(() => import("@/pages/ScanDocument"));
 const Letterhead = lazy(() => import("@/pages/Letterhead"));
+const PdfMetadata = lazy(() => import("@/pages/PdfMetadata"));
+const PdfForms = lazy(() => import("@/pages/PdfForms"));
+const QrTools = lazy(() => import("@/pages/QrTools"));
+const ImageConvert = lazy(() => import("@/pages/ImageConvert"));
 
 const AUTH_PATHS = ["/sign-in", "/create-account", "/verify"];
 
@@ -62,6 +66,10 @@ function Tools() {
           <Route path="/scan" component={ScanDocument} />
           <Route path="/watermark-pdf" component={WatermarkPdf} />
           <Route path="/letterhead" component={Letterhead} />
+          <Route path="/pdf-properties" component={PdfMetadata} />
+          <Route path="/pdf-forms" component={PdfForms} />
+          <Route path="/qr-codes" component={QrTools} />
+          <Route path="/convert-images" component={ImageConvert} />
           <Route path="/protect-pdf" component={ProtectPdf} />
           <Route path="/redact-pdf" component={RedactPdf} />
           <Route path="/sign-pdf" component={SignPdf} />

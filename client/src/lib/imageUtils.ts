@@ -1,5 +1,4 @@
 import { jsPDF } from "jspdf";
-import { createFile } from "./fileUtils";
 
 interface ImageToPdfOptions {
   pageSize?: "a4" | "letter" | "legal" | "custom";
@@ -57,7 +56,7 @@ export const convertImagesToPdf = async (
       await addImageToPdf(doc, imageFile, imageURL, pdfWidth, pdfHeight, quality);
     } catch (error) {
       console.error(`Error adding image ${imageFile.name} to PDF:`, error);
-      // Continue with next image
+      throw new Error(`Could not add “${imageFile.name}” to the PDF. No partial file was created.`);
     }
   }
 
@@ -133,15 +132,16 @@ const addImageToPdf = (
         canvas.height = imageHeight;
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Could not create canvas context");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, imageWidth, imageHeight);
         ctx.drawImage(image, 0, 0);
 
-        const isJpegSource = imageFile.type === "image/jpeg" || imageFile.type === "image/jpg";
-        const encoded = isJpegSource
-          ? canvas.toDataURL("image/jpeg", quality)
-          : canvas.toDataURL("image/png");
-
-        // Add the image to the PDF
-        doc.addImage(encoded, isJpegSource ? "JPEG" : "PNG", x, y, finalWidth, finalHeight);
+        // Every import is normalized to PNG. Apply the quality setting to
+        // the actual PDF image rather than inferring it from the source suffix.
+        const lossless = quality >= 1;
+        const encoded = canvas.toDataURL(lossless ? "image/png" : "image/jpeg", quality);
+        doc.addImage(encoded, lossless ? "PNG" : "JPEG", x, y, finalWidth, finalHeight);
+        canvas.width = canvas.height = 0;
         resolve();
       } catch (error) {
         reject(error);

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
@@ -13,10 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
 import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
 import { convertImagesToPdf, rotateImage } from "@/lib/imageUtils";
+import { IMAGE_ACCEPT, IMAGE_LIMITS, decodeImagePages } from "@/lib/addons/images";
 
 const ImageToPdf = () => {
   const { toast } = useToast();
   const { files: vaultFiles, removeFile: removeVaultFile } = useFileVault();
+  const originalFiles = useRef<File[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -31,45 +33,47 @@ const ImageToPdf = () => {
   const [isConverting, setIsConverting] = useState(false);
 
   const handleImagesSelected = useCallback(async (files: File[]) => {
-    if (files.length > 0) {
-      setImageFiles(files);
-      setImagePreviewUrls([]);
-      setIsLoadingPreview(true);
-      try {
-        const urls = await Promise.all(files.map(f => generateFilePreview(f)));
-        setImagePreviewUrls(urls);
-        setShowOptions(true);
-      } catch {
-        toast({ variant: "destructive", title: "Preview failed" });
-      } finally {
-        setIsLoadingPreview(false);
-      }
-    }
+    if (!files.length) return;
+    setIsLoadingPreview(true); setPdfResult(null);
+    try {
+      const pages = await decodeImagePages(files);
+      const urls = await Promise.all(pages.map(f => generateFilePreview(f)));
+      originalFiles.current = files;
+      setImageFiles(pages); setImagePreviewUrls(urls); setShowOptions(true);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Could not open images", description: error instanceof Error ? error.message : undefined });
+    } finally { setIsLoadingPreview(false); }
   }, [toast]);
 
   const handleAddMoreImages = useCallback(() => {
     const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const newFiles = Array.from((e.target as HTMLInputElement).files || []);
-      if (newFiles.length > 0) {
-        const updated = [...imageFiles, ...newFiles];
-        setImageFiles(updated);
-        setIsLoadingPreview(true);
-        try {
-          const newUrls = await Promise.all(newFiles.map(f => generateFilePreview(f)));
-          setImagePreviewUrls(prev => [...prev, ...newUrls]);
-        } finally {
-          setIsLoadingPreview(false);
-        }
-      }
+    input.type = "file"; input.accept = IMAGE_ACCEPT; input.multiple = true;
+    input.onchange = async () => {
+      const added = Array.from(input.files || []);
+      if (!added.length) return;
+      setIsLoadingPreview(true); setPdfResult(null);
+      try {
+        // Recheck the whole selection so successive additions cannot bypass the total budget.
+        const originals = [...originalFiles.current, ...added];
+        const fresh = await decodeImagePages(added);
+        if (imageFiles.length + fresh.length > IMAGE_LIMITS.pages) throw new Error("Use 100 image pages or fewer.");
+        const totalPixels = await Promise.all([...imageFiles, ...fresh].map(async file => {
+          const bitmap = await createImageBitmap(file);
+          try { return bitmap.width * bitmap.height; } finally { bitmap.close(); }
+        }));
+        if (totalPixels.reduce((a, b) => a + b, 0) > IMAGE_LIMITS.totalPixels) throw new Error("The selection exceeds 80 megapixels in total.");
+        const newUrls = await Promise.all(fresh.map(f => generateFilePreview(f)));
+        originalFiles.current = originals;
+        setImageFiles(prev => [...prev, ...fresh]); setImagePreviewUrls(prev => [...prev, ...newUrls]);
+      } catch (error) {
+        toast({ variant: "destructive", title: "Could not add images", description: error instanceof Error ? error.message : undefined });
+      } finally { setIsLoadingPreview(false); }
     };
     input.click();
-  }, [imageFiles]);
+  }, [imageFiles, toast]);
 
   const handleRemoveImage = useCallback((index: number) => {
+    setPdfResult(null);
     setImageFiles(p => p.filter((_, i) => i !== index));
     setImagePreviewUrls(p => p.filter((_, i) => i !== index));
   }, []);
@@ -77,7 +81,8 @@ const ImageToPdf = () => {
   const handleClearImages = useCallback(() => {
     // Also drop these files from the shared workspace vault — otherwise a
     // fresh FileUpload silently re-adopts the files we just finished with.
-    vaultFiles.filter(vf => imageFiles.includes(vf.file)).forEach(vf => removeVaultFile(vf.id));
+    vaultFiles.filter(vf => originalFiles.current.includes(vf.file)).forEach(vf => removeVaultFile(vf.id));
+    originalFiles.current = [];
     setImageFiles([]);
     setImagePreviewUrls([]);
     setIsLoadingPreview(false);
@@ -91,6 +96,7 @@ const ImageToPdf = () => {
       const newFiles = [...imageFiles];
       newFiles[index] = rotated;
       setImageFiles(newFiles);
+      setPdfResult(null);
       const newUrl = await generateFilePreview(rotated);
       const newUrls = [...imagePreviewUrls];
       newUrls[index] = newUrl;
@@ -102,7 +108,7 @@ const ImageToPdf = () => {
   }, [imageFiles, imagePreviewUrls, toast]);
 
   const handleConvertToPdf = useCallback(async () => {
-    if (imageFiles.length === 0) return;
+    if (imageFiles.length === 0 || isLoadingPreview) return;
     setIsConverting(true);
     try {
       const pdfFile = await convertImagesToPdf(imageFiles, {
@@ -118,7 +124,7 @@ const ImageToPdf = () => {
     } finally {
       setIsConverting(false);
     }
-  }, [imageFiles, pageSize, orientation, quality, customWidth, customHeight, filename, toast]);
+  }, [imageFiles, isLoadingPreview, pageSize, orientation, quality, customWidth, customHeight, filename, toast]);
 
   return (
     <section className="py-10 bg-background min-h-[60vh]">
@@ -130,19 +136,19 @@ const ImageToPdf = () => {
             <span className="text-brand text-xs font-semibold uppercase tracking-widest">Convert</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground font-heading">Image to PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Combine JPG, PNG, or WebP images into a single PDF document</p>
+          <p className="text-muted-foreground text-sm mt-1">Combine photos and image files into a PDF. TIFF and HEIC images can add multiple pages.</p>
         </div>
 
         <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
-          <div className="p-6">
-            {imageFiles.length === 0 ? (
+          <fieldset className="min-w-0 p-6" disabled={isConverting || isLoadingPreview}>
+            {isLoadingPreview && imageFiles.length === 0 ? <p role="status" className="text-sm">Opening image pages on this device…</p> : imageFiles.length === 0 ? (
               <FileUpload
-                accept="image/*"
-                maxSizeInMB={50}
+                accept={IMAGE_ACCEPT}
+                maxSizeInMB={20}
                 multiple
                 onFilesSelected={handleImagesSelected}
                 title="Upload Images"
-                description="Drag & drop or click to browse"
+                description="JPG, PNG, WebP, BMP, GIF, TIFF, HEIC/HEIF and browser-supported AVIF. Animated GIFs use the first frame."
                 buttonText="Select Images"
                 icon={<Images size={36} />}
               />
@@ -208,6 +214,7 @@ const ImageToPdf = () => {
                         <span className="text-xs text-muted-foreground font-mono">{quality}%</span>
                       </div>
                       <Slider min={1} max={100} step={1} value={[quality]} onValueChange={v => setQuality(v[0])} />
+                      <p className="mt-2 text-xs text-muted-foreground">Lower quality creates smaller photo pages. At 100%, pages use lossless PNG images. Transparent areas are placed on white.</p>
                     </div>
                   </div>
                 )}
@@ -235,7 +242,7 @@ const ImageToPdf = () => {
 
                 {showOptions && !pdfResult && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleConvertToPdf} disabled={imageFiles.length === 0 || isConverting} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
+                    <Button onClick={handleConvertToPdf} disabled={imageFiles.length === 0 || isConverting || isLoadingPreview} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
                       {isConverting ? "Converting..." : "Convert to PDF"}
                     </Button>
                     <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-md">
@@ -245,7 +252,7 @@ const ImageToPdf = () => {
                 )}
               </>
             )}
-          </div>
+          </fieldset>
         </div>
       </div>
     </section>
