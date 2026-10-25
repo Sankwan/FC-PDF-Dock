@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
       },
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["icons/favicon-64.png", "icons/apple-touch-icon.png", "fc/fc-logo.png", "fc/fc-mark.png"],
+        includeAssets: ["icons/favicon-64.png", "icons/apple-touch-icon.png", "fc/fc-logo.png", "fc/fc-mark.png", "images/kakum-canopy.jpg"],
         workbox: {
           // pdf.worker.min.mjs ships as .mjs, which isn't in the default glob
           // list. Large engines (OCR ~9MB, Word to PDF ~47MB, scanner ~13MB)

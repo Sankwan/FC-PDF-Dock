@@ -12,7 +12,8 @@
     "assets:fc": "node scripts/build-fc-assets.mjs",
     "vendor:opencv": "node -e \"require('fs').copyFileSync('node_modules/@techstark/opencv-js/dist/opencv.js','client/public/opencv/opencv.js')\"",
     "test": "tsx --test tests/*.test.ts",
-    "test:deployment": "node scripts/test-deployment.mjs"
+    "test:deployment": "node scripts/test-deployment.mjs",
+    "test:pdf2word": "node scripts/test-pdf2word.mjs"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.3.0",

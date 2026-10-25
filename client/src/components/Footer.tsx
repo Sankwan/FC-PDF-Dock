@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { brand, features } from "@/brand";
+import { brand, features, conversionServer } from "@/brand";
 import { ORG } from "@/fc/org";
 import { tools } from "@/components/ToolsSection";
 
@@ -12,7 +12,7 @@ const Footer = () => (
             <img src={brand.logo} alt="Forestry Commission" className="h-12 w-auto" />
           </div>
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">
-            {brand.name} is Forestry Commission's document toolkit for staff. Most tools process files on your device. PDF to Word uses the FC server.
+            {brand.name} is Forestry Commission's document toolkit for staff. Most tools process files on your device. PDF to Word, when enabled, uses the {conversionServer}.
           </p>
           <p className="mt-3 text-xs text-muted-foreground">
             {ORG.name} · {ORG.headOffice} · {ORG.ministry}

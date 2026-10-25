@@ -9,6 +9,7 @@ setup and ../SECURITY.md for the checklist to work through before sharing
 this beyond head office.
 """
 import logging
+import asyncio
 import os
 import tempfile
 import uuid
@@ -29,6 +30,9 @@ MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "50")) * 1024 * 1024
 ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
 app = FastAPI(title="pdf-to-word", version="1.0.0")
+# PyMuPDF/pdf2docx must not run in concurrent threads in the same process.
+# Additional workers each own a separate slot; Railway pilot uses one worker.
+_conversion_slot = asyncio.Semaphore(1)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +60,14 @@ def _cleanup(*paths: Path) -> None:
 
 @app.post("/convert/pdf-to-word", dependencies=[Depends(require_api_key)])
 async def convert_pdf_to_word_endpoint(background_tasks: BackgroundTasks, file: UploadFile):
-    data = await file.read()
+    if _conversion_slot.locked():
+        raise HTTPException(429, "Another conversion is running. Try again shortly.", headers={"Retry-After": "10"})
+    async with _conversion_slot:
+        return await _convert_file(background_tasks, file)
+
+
+async def _convert_file(background_tasks: BackgroundTasks, file: UploadFile):
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
     if not data:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file.")
     if len(data) > MAX_UPLOAD_BYTES:

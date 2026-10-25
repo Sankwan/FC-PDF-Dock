@@ -60,6 +60,44 @@ TypeScript checks. `npm test` runs document-property, form and QR regression tes
 
 ## Railway test deployment
 
+### Recommended: public pilot without an email server
+
+For people to test the browser tools behind a demo entry screen, deploy just
+the root website service with these Railway **build variables**:
+
+```text
+VITE_AUTH_REQUIRED=true
+VITE_DEMO_MODE=true
+VITE_PDF2WORD_ENABLED=false
+```
+
+Rebuild/redeploy after changing them. The sign-in page displays the public
+demo details: email `demo@pdfdock.test`, code `246810`. “Fill demo details”
+fills both fields; “Open the tools” enters the pilot. No auth service, SMTP
+or database is needed for this mode. “Leave demo” ends the tab's session.
+
+Demo access is deliberately public, not an access-control mechanism. It is
+stored separately in sessionStorage, never as a verified staff profile, and
+creates no backend cookie. A banner identifies demo sessions. PDF to Word is
+disabled by default in demo builds. It can be explicitly enabled for a
+separate Railway converter pilot; see [the step-by-step setup](docs/deployment/railway-pilot.md). Use sample
+documents. Cached scanner drafts still follow the scanner's disclosed retention.
+
+For internal rollout, set `VITE_DEMO_MODE=false`, keep `VITE_AUTH_REQUIRED=true`,
+rebuild, and configure the real auth and PDF-to-Word services as documented in
+`deploy/headoffice/`. Demo mode defaults to false in code and Docker builds.
+
+### Add PDF-to-Word to the public pilot
+
+Follow [Railway pilot with PDF-to-Word](docs/deployment/railway-pilot.md). It
+adds a private converter service and a server-only proxy key. Enable both
+`VITE_PDF2WORD_ENABLED=true` (build) and `PDF2WORD_PUBLIC_PILOT=true` (runtime),
+then rebuild. PDFs sent to this test converter are processed on Railway, so
+use sample documents. The production head-office authentication/network
+checks are kept in their separate deployment template.
+
+### Optional: test the real sign-in service
+
 For a test deployment without FC email configured, deploy two services from
 this repository in the same Railway project and environment:
 

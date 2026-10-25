@@ -14,6 +14,7 @@ ARG VITE_ORG_NAME="Forestry Commission"
 ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server."
 ARG VITE_THEME_COLOR="#0E2516"
 ARG VITE_AUTH_REQUIRED="true"
+ARG VITE_DEMO_MODE="false"
 ARG VITE_STAFF_EMAIL_DOMAIN="fc.gov.gh"
 ARG VITE_PDF2WORD_ENABLED="true"
 ENV VITE_APP_NAME=$VITE_APP_NAME \
@@ -22,6 +23,7 @@ ENV VITE_APP_NAME=$VITE_APP_NAME \
     VITE_APP_DESCRIPTION=$VITE_APP_DESCRIPTION \
     VITE_THEME_COLOR=$VITE_THEME_COLOR \
     VITE_AUTH_REQUIRED=$VITE_AUTH_REQUIRED \
+    VITE_DEMO_MODE=$VITE_DEMO_MODE \
     VITE_STAFF_EMAIL_DOMAIN=$VITE_STAFF_EMAIL_DOMAIN \
     VITE_PDF2WORD_ENABLED=$VITE_PDF2WORD_ENABLED
 
@@ -37,6 +39,8 @@ COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY deploy/headoffice/security-headers.conf /etc/nginx/security-headers.conf
 
 ENV PORT=8080 AUTH_SERVICE_URL=http://auth:8100 \
+    PDF2WORD_SERVICE_URL=http://pdf2word:8000 \
+    PDF2WORD_PUBLIC_PILOT=false PDF2WORD_API_KEY="" \
     NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 EXPOSE 8080
 

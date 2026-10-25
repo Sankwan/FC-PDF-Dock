@@ -3,6 +3,15 @@
 # Dockerfile's default ENV PORT=8080 for local `docker run`). Nginx's own
 # variables (like $uri below) are untouched by this since envsubst only
 # substitutes names that exist as real environment variables.
+# Public conversion is an explicit temporary pilot setting. The separate
+# head-office template keeps its staff-session and internal-network checks.
+map "${PDF2WORD_PUBLIC_PILOT}" $pdf2word_pilot_enabled {
+    default 0;
+    "true" 1;
+}
+limit_req_zone $binary_remote_addr zone=pdf2word_pilot:10m rate=5r/m;
+limit_conn_zone $server_name zone=pdf2word_jobs:10m;
+
 server {
     listen ${PORT};
     server_name _;
@@ -21,6 +30,29 @@ server {
     resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
     resolver_timeout 5s;
     set $auth_upstream "${AUTH_SERVICE_URL}";
+    set $pdf2word_upstream "${PDF2WORD_SERVICE_URL}";
+    set $pdf2word_api_key "${PDF2WORD_API_KEY}";
+
+    location /api/pdf2word/ {
+        if ($pdf2word_pilot_enabled = 0) { return 403; }
+        if ($pdf2word_api_key = "") { return 503; }
+        if ($uri !~ "^/api/pdf2word/(health|convert/pdf-to-word)$") { return 404; }
+        client_max_body_size 51m;
+        limit_req zone=pdf2word_pilot burst=5 nodelay;
+        limit_req_status 429;
+        limit_conn pdf2word_jobs 2;
+        limit_conn_status 429;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 60s;
+        proxy_buffering off;
+        proxy_set_header X-API-Key $pdf2word_api_key;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        rewrite ^/api/pdf2word/(.*)$ /$1 break;
+        proxy_pass $pdf2word_upstream;
+    }
 
     # Keep auth same-origin for the browser while the auth service stays
     # private. Set AUTH_SERVICE_URL to the auth service's private Railway URL.

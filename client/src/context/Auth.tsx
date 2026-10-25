@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { features } from "@/brand";
+import { demoUser, readDemoSession, writeDemoSession } from "@/lib/demoAccess";
 
 /**
  * Staff sign-in state. The session itself is an HttpOnly cookie set by
@@ -25,6 +26,8 @@ interface AuthValue {
   user: StaffUser | null;
   /** true when we're trusting the cached profile because the server can't be reached */
   offline: boolean;
+  isDemo: boolean;
+  enterDemo: () => void;
   setSignedIn: (user: StaffUser) => void;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -97,12 +100,16 @@ export const authFetch = async <T,>(path: string, init: { method?: string; body?
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const cached = features.authRequired ? readCache() : null;
-  const [status, setStatus] = useState<Status>(features.authRequired ? (cached ? "signed-in" : "loading") : "signed-in");
-  const [user, setUser] = useState<StaffUser | null>(cached?.user ?? null);
+  const [isDemo, setIsDemo] = useState(() => readDemoSession(features.demoMode));
+  const [status, setStatus] = useState<Status>(features.authRequired ? (isDemo || cached ? "signed-in" : features.demoMode ? "signed-out" : "loading") : "signed-in");
+  const [user, setUser] = useState<StaffUser | null>(isDemo ? demoUser : cached?.user ?? null);
   const [offline, setOffline] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!features.authRequired) return;
+    if (isDemo) return;
+    // A serverless pilot must not make an unavailable auth API a prerequisite.
+    if (features.demoMode && !readCache()) { setStatus("signed-out"); return; }
     try {
       const { user: fresh } = await authFetch<{ user: StaffUser }>("/me");
       setUser(fresh);
@@ -128,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setOffline(err instanceof ApiError && err.code === "network");
       }
     }
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
     refresh();
@@ -138,8 +145,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refresh]);
 
   const setSignedIn = useCallback((u: StaffUser) => {
+    writeDemoSession(false);
+    setIsDemo(false);
     writeCache(u);
     setUser(u);
+    setStatus("signed-in");
+    setOffline(false);
+  }, []);
+
+  const enterDemo = useCallback(() => {
+    if (!features.demoMode) return;
+    writeDemoSession(true);
+    setIsDemo(true);
+    setUser(demoUser);
     setStatus("signed-in");
     setOffline(false);
   }, []);
@@ -150,18 +168,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user?.email) await writeScanDraft(null, user.email);
     } catch { /* Local draft storage may be unavailable. Account scopes still isolate drafts. */ }
     try {
-      await authFetch("/logout", { method: "POST", body: {} });
+      if (!isDemo) await authFetch("/logout", { method: "POST", body: {} });
     } catch {
       /* signing out locally still matters when offline */
     }
     writeCache(null);
+    writeDemoSession(false);
+    setIsDemo(false);
     setUser(null);
     setStatus("signed-out");
-  }, [user?.email]);
+  }, [user?.email, isDemo]);
 
   const value = useMemo(
-    () => ({ status, user, offline, setSignedIn, signOut, refresh }),
-    [status, user, offline, setSignedIn, signOut, refresh]
+    () => ({ status, user, offline, isDemo, enterDemo, setSignedIn, signOut, refresh }),
+    [status, user, offline, isDemo, enterDemo, setSignedIn, signOut, refresh]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

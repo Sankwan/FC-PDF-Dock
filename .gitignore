@@ -7,3 +7,6 @@ dist/
 
 # Generated from the locked PDF.js dependency by Vite.
 client/public/pdfjs-assets/
+
+# Local visual QA captures, not application assets.
+.impeccable/review/

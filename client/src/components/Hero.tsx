@@ -1,3 +1,4 @@
+import { conversionServer, features } from "@/brand";
 import { Link } from "wouter";
 import { HardDrive, ScanLine, FileBadge2, EyeOff, Combine, WifiOff, Server } from "lucide-react";
 import { useAuth } from "@/context/Auth";
@@ -26,12 +27,12 @@ const Hero = () => {
               Work on your document today?
             </h1>
             <p className="mt-3 max-w-xl text-muted-foreground">
-              Most tools work on your own computer or phone without uploading files. PDF to Word uses the FC head-office server.
+              Most tools work on your own computer or phone without uploading files. PDF to Word, when enabled, uses the {conversionServer}.
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><HardDrive size={15} className="text-brand" /> Files stay on this device</li>
               <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Offline access available</li>
-              <li className="flex items-center gap-2"><Server size={15} className="text-brand" /> PDF to Word: head office only</li>
+              <li className="flex items-center gap-2"><Server size={15} className="text-brand" /> PDF to Word: {features.demoMode ? "Railway test" : "head office only"}</li>
             </ul>
           </div>
 

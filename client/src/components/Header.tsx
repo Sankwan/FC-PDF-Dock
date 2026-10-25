@@ -17,7 +17,7 @@ const Header = () => {
   const [location] = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
   const { isStandalone } = useInstallPrompt();
-  const { user, offline, signOut } = useAuth();
+  const { user, offline, isDemo, signOut } = useAuth();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isDark = resolvedTheme === "dark";
@@ -118,7 +118,7 @@ const Header = () => {
                   </button>
                   {features.authRequired && user && (
                     <button type="button" className={`${menuItem} border-t border-border`} onClick={() => { setMenuOpen(false); signOut(); }}>
-                      <LogOut size={16} className="text-muted-foreground" /> Sign out
+                      <LogOut size={16} className="text-muted-foreground" /> {isDemo ? "Leave demo" : "Sign out"}
                     </button>
                   )}
                 </div>

@@ -1,3 +1,4 @@
+import { features, conversionServer } from "@/brand";
 import { useState, useCallback } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
@@ -111,16 +112,15 @@ const PdfToWord = () => {
             <div role="note" className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50">
               <Building2 size={18} className="mt-0.5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
               <div className="text-sm leading-relaxed">
-                <p className="font-semibold">Currently available at head office only</p>
+                <p className="font-semibold">{features.demoMode ? "Test conversion on Railway" : "Currently available at head office only"}</p>
                 <p className="mt-0.5">
-                  PDF to Word uses the conversion server at Head Office, so for now it only works on the head-office network.
-                  If you are outside that network, use the other document tools or contact MIS/IT for access.
+                  {features.demoMode ? "This tool uploads your PDF to the Railway test server and returns an editable Word file. Use sample documents, not confidential FC records. Scanned pages use OCR and may lose their original layout." : "PDF to Word uses the conversion server at Head Office and works on the head-office network. If you are outside that network, contact MIS/IT for access."}
                 </p>
-                <p className="mt-1.5 text-xs opacity-80">This installation sends your PDF to the FC conversion server. Its temporary working files are deleted after the conversion request finishes.</p>
+                <p className="mt-1.5 text-xs opacity-80">Files go to the {conversionServer}. Temporary working files are deleted after conversion and download finish. Limit: 50MB per PDF; split long documents into smaller files.</p>
               </div>
             </div>
 
-            <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
+            <div className="bg-card border border-border rounded-xl shadow-sm">
               <div className="p-6">
                 {!pdfFile ? (
                   <FileUpload

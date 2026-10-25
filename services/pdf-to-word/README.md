@@ -1,61 +1,18 @@
-# pdf-to-word service
+# PDF-to-Word service
 
-> **Forestry Commission build:** this service runs only on the FC head-office
-> server, behind nginx, as part of `deploy/headoffice/`. The browser calls it on
-> the same address at `/api/pdf2word/`; nginx checks the staff session and the
-> head-office network, and adds the API key itself, so no key or service URL is
-> in the app, and CORS is not used. Do **not** use the Railway or Vercel
-> options below for FC: they would send staff documents through third-party
-> servers. They are kept only as background.
+The converter accepts PDFs and returns editable DOCX files. Native PDFs use
+pdf2docx layout extraction; scanned PDFs use OCR and produce editable text.
+Scanned layout fidelity is limited, as described below.
 
+For the temporary public Railway test, follow
+[Railway pilot with PDF-to-Word](../../docs/deployment/railway-pilot.md).
+It keeps this service private and puts the API key in the website's Nginx
+proxy, never in the client bundle. Use sample documents for cloud testing.
 
-A small, self-hosted API that does what the rest of the Local PDF Toolkit
-deliberately doesn't: run on a server. Converts PDF → DOCX, the one
-direction nobody's solved client-side (see the main project's `README.md`
-"PDF to Word" section for why). Runs entirely inside a Docker container —
-nobody needs Python, Tesseract, Ghostscript, or anything else installed on
-their own machine.
-
-**Status: head-office-only, for testing.** Bound to `127.0.0.1` by default
-in `docker-compose.yml` — not reachable from any other machine, not even
-over Tailscale, until you deliberately change that. Work through
-`SECURITY.md` before doing so.
-
-**→ See [`DEPLOYMENT.md`](./DEPLOYMENT.md)** for a full breakdown of how
-the conversion pipeline works end to end, plus the step-by-step Cloudflare
-Tunnel runbook for making this reachable by a Vercel-hosted frontend.
-
-## Exposing this for a deployed frontend (e.g. Vercel)
-
-The frontend (`client/src/lib/pdfToWordApi.ts`, `VITE_PDF2WORD_API_URL`)
-calls this service directly from the visitor's browser — there's no proxy
-in between, because Vercel's serverless functions hard-cap request bodies
-at 4.5MB (can't be raised at any plan tier) and real PDFs routinely exceed
-that. Two consequences:
-
-1. **This service must be served over real HTTPS**, not just "reachable."
-   A Vercel-hosted (HTTPS) page cannot call a plain `http://` address —
-   browsers block it as mixed content, silently, with no error a normal
-   user would understand.
-2. **`ALLOWED_ORIGINS` must list the actual deployed frontend origin**
-   (e.g. `https://your-app.vercel.app`), or the browser's CORS check
-   blocks the call before it ever reaches `require_api_key`.
-
-Two ways to get real HTTPS in front of `127.0.0.1:8000` without touching
-the loopback-only bind above until you're ready:
-
-- **Cloudflare Tunnel** — `cloudflared tunnel --url http://localhost:8000`
-  (or a named, persistent tunnel) gives a public HTTPS URL with no
-  port-forwarding or router config. Best fit for testing with people
-  outside your network — they need nothing installed. Layer Cloudflare
-  Access in front of it if you want real access control beyond the API
-  key, which stops being a real secret once it's in a public frontend
-  bundle (see `.env.example` in the main project).
-- **Tailscale + `tailscale serve`** —
-  `tailscale serve --bg --https=443 http://localhost:8000` fronts the
-  service with a real cert on your tailnet's own domain. Stays private —
-  only devices on your tailnet can reach it — but every tester needs
-  Tailscale installed and invited, more friction for a wide beta.
+For internal FC rollout, use [deploy/headoffice](../../deploy/headoffice/README.md),
+which enforces staff sessions and office-network access. The older direct-browser
+Vercel/tunnel notes in DEPLOYMENT.md are historical and are not the current FC
+setup. The client calls only same-origin `/api/pdf2word/` routes.
 
 ## How it works
 

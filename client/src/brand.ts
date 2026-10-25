@@ -16,8 +16,12 @@ export const brand = {
   mark: "/fc/fc-mark.png",
 };
 
+const demoMode = env.VITE_DEMO_MODE === "true";
 export const features = {
+  demoMode,
   authRequired: (env.VITE_AUTH_REQUIRED ?? "true") !== "false",
   staffEmailDomain: (env.VITE_STAFF_EMAIL_DOMAIN || "fc.gov.gh").toLowerCase(),
-  pdfToWord: (env.VITE_PDF2WORD_ENABLED ?? "true") !== "false",
+  pdfToWord: (env.VITE_PDF2WORD_ENABLED ?? (demoMode ? "false" : "true")) === "true",
 };
+
+export const conversionServer = demoMode ? "Railway test server" : "FC conversion server";

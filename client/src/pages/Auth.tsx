@@ -1,73 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, CheckCircle2, HardDrive, KeyRound, Loader2, Mail, ShieldCheck, WifiOff } from "lucide-react";
+import { ArrowRight, Check, FileText, Loader2, Mail, ScanLine, ShieldCheck, WifiOff } from "lucide-react";
 import { brand, features } from "@/brand";
 import { ApiError, authFetch, useAuth, type StaffUser } from "@/context/Auth";
+import { DEMO_EMAIL, DEMO_CODE, matchesDemoCredentials } from "@/lib/demoAccess";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import "./Auth.css";
 
 const domain = features.staffEmailDomain;
-
-/** Mirrors services/auth/src/staff.js so people see mistakes before submitting. */
 const emailProblem = (email: string): string | null => {
   const e = email.trim().toLowerCase();
   if (!e) return "Enter your official email address.";
   if (!e.includes("@")) return `Enter your full address, like firstname.lastname@${domain}.`;
-  const [local, host] = [e.slice(0, e.lastIndexOf("@")), e.slice(e.lastIndexOf("@") + 1)];
-  if (host !== domain) return `Use your official @${domain} address.`;
-  if (!/^[a-z]+(?:-[a-z]+)*(?:\.[a-z]+(?:-[a-z]+)*)+\d{0,3}$/.test(local)) return `Use the firstname.lastname@${domain} format.`;
+  const at = e.lastIndexOf("@");
+  if (e.slice(at + 1) !== domain) return `Use your official @${domain} address.`;
+  if (!/^[a-z]+(?:-[a-z]+)*(?:\.[a-z]+(?:-[a-z]+)*)+\d{0,3}$/.test(e.slice(0, at))) return `Use the firstname.lastname@${domain} format.`;
   return null;
 };
 
-const BrandPanel = () => (
-  <aside className="relative flex flex-col justify-between gap-10 bg-chrome px-4 py-5 text-white sm:px-10 lg:min-h-screen lg:py-12">
-    <div className="flex items-center gap-3">
-      <span className="grid h-14 w-[4.5rem] place-items-center rounded-md bg-white p-1.5">
-        <img src={brand.logo} alt="Forestry Commission logo" className="h-full w-full object-contain" />
-      </span>
-      <div className="leading-tight">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-logo">{brand.orgName}</div>
-        <div className="text-xl font-bold">{brand.name}</div>
-      </div>
+const WorkflowPreview = () => (
+  <figure className="auth-art">
+    <div className="auth-photo">
+      <img src="/images/kakum-canopy.jpg" alt="A canopy walkway among the trees at Kakum National Park, Ghana" width="1400" height="1050" fetchPriority="high" />
+      <span className="auth-photo-caption">Kakum National Park, Ghana</span>
     </div>
-
-    <div className="hidden max-w-md lg:block">
-      <h1 className="text-3xl font-bold leading-tight sm:text-4xl" style={{ textWrap: "balance" } as React.CSSProperties}>
-        Document tools for FC staff
-      </h1>
-      <p className="mt-3 text-white/70">
-        Use these instead of free online PDF websites. Merge, sign, redact, scan and convert on your own device. Your files are never uploaded.
-      </p>
-      <ul className="mt-8 space-y-4 text-sm">
-        <li className="flex gap-3">
-          <HardDrive size={18} className="mt-0.5 shrink-0 text-brand-logo" />
-          <span className="text-white/80">Files stay on this computer or phone. Only PDF to Word uses the head-office server.</span>
-        </li>
-        <li className="flex gap-3">
-          <WifiOff size={18} className="mt-0.5 shrink-0 text-brand-logo" />
-          <span className="text-white/80">Install it once and most tools keep working without internet.</span>
-        </li>
-        <li className="flex gap-3">
-          <KeyRound size={18} className="mt-0.5 shrink-0 text-brand-logo" />
-          <span className="text-white/80">No password and no forms. Just a code sent to your official email.</span>
-        </li>
-      </ul>
+    <div className="auth-document" aria-label="Illustrative document workflow preview">
+      <div className="auth-document-top"><FileText size={18} /><span>Field report</span><span className="auth-example">Example</span></div>
+      <div className="auth-document-body"><img src={brand.mark} alt="" width="34" height="34" /><strong>From paper<br />to a finished PDF.</strong><div className="auth-document-lines" aria-hidden="true"><span /><span /><span /></div></div>
+      <div className="auth-document-done"><Check size={14} /> Ready to save</div>
     </div>
-
-    <p className="hidden text-xs text-white/75 lg:block">For Forestry Commission staff.</p>
-  </aside>
+    <figcaption className="auth-workflow"><span><ScanLine size={16} /> Scan</span><ArrowRight size={14} aria-hidden="true" /><span>Prepare</span><ArrowRight size={14} aria-hidden="true" /><span>Save & share</span></figcaption>
+  </figure>
 );
 
-const inputClass = "mt-1.5 h-11 rounded-md border-input bg-card focus-visible:ring-brand";
-
-/**
- * One screen for everyone: enter your official email, then the code we send
- * to it. The first time, that also sets up access; there's nothing else to
- * fill in.
- */
 const AuthPage = ({ fromLink = false }: { fromLink?: boolean }) => {
   const [, navigate] = useLocation();
-  const { setSignedIn, offline } = useAuth();
+  const { setSignedIn, enterDemo, offline } = useAuth();
+  const [mode, setMode] = useState<"demo" | "staff">(features.demoMode && !fromLink ? "demo" : "staff");
 
   const [step, setStep] = useState<"email" | "code">(fromLink ? "code" : "email");
   const [email, setEmail] = useState("");
@@ -155,123 +125,76 @@ const AuthPage = ({ fromLink = false }: { fromLink?: boolean }) => {
     }
   };
 
-  const primary = "inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-60";
+  const demo = mode === "demo";
+  const showCode = demo || step === "code";
+  const switchMode = (next: "demo" | "staff") => {
+    setMode(next); setStep("email"); setEmail(""); setCode(""); setError(null); setNotice(null); setPrefilled(false);
+  };
+  const submitDemo = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) { setError({ message: "Enter the demo email shown below.", field: "email" }); return; }
+    if (!matchesDemoCredentials(email, code)) {
+      setError({ message: "Use the demo email and code shown below, or select Fill demo details." }); return;
+    }
+    enterDemo();
+    navigate("/");
+  };
+  const fillDemo = () => { setEmail(DEMO_EMAIL); setCode(DEMO_CODE); setError(null); };
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <BrandPanel />
-      <main className="flex items-start justify-center px-4 py-8 sm:px-8 lg:items-center lg:py-10">
-        <div className="w-full max-w-md">
-          {offline && (
-            <div className="mb-6 flex gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-              <WifiOff size={18} className="mt-0.5 shrink-0" />
-              <span>You're offline. Signing in needs a connection the first time on each device.</span>
+    <div className="auth-page">
+      <a href="#sign-in-form" className="auth-skip">Skip to sign in</a>
+      <header className="auth-header">
+        <div className="auth-brand"><img src={brand.logo} alt="Forestry Commission logo" width="76" height="54" /><span><strong>{brand.shortName}</strong><span>{brand.orgName}</span></span></div>
+        <span className="auth-status">{features.demoMode ? "Pilot testing" : "Staff workspace"}</span>
+      </header>
+      <main className="auth-main">
+        <section className="auth-intro" aria-labelledby="auth-title">
+          <h1 id="auth-title">Less paperwork.<br /><span>More fieldwork.</span></h1>
+          <p>Scan, prepare and share your documents.<br className="auth-desktop-break" /> One workspace for the work you do.</p>
+        </section>
+        <WorkflowPreview />
+        <section id="sign-in-form" tabIndex={-1} className="auth-form-section" aria-labelledby="sign-in-title">
+          <h2 id="sign-in-title">Welcome to {brand.name}.</h2>
+          <p className="auth-form-intro">{demo ? "Take the tools for a test run. No staff account needed." : "Sign in with your official email. We’ll send you a code."}</p>
+          {features.demoMode && <div className="auth-modes" role="group" aria-label="Choose access type">
+            <button type="button" aria-pressed={demo} disabled={busy} onClick={() => switchMode("demo")}>Demo access</button>
+            <button type="button" aria-pressed={!demo} disabled={busy} onClick={() => switchMode("staff")}>Staff sign-in</button>
+          </div>}
+          {offline && !demo && <p className="auth-message"><WifiOff size={18} /> You’re offline. Connect to receive a sign-in code.</p>}
+          {notice && !demo && <p className="auth-message" role="status"><Mail size={18} /> {notice}</p>}
+          {error && !error.field && <p className="auth-error" role="alert">{error.message}</p>}
+          <form onSubmit={demo ? submitDemo : step === "email" ? requestCode : verify} noValidate className="auth-form" aria-busy={busy}>
+            <div>
+              <div className="auth-label-row"><Label htmlFor="email">{demo ? "Demo email" : "Official email"}</Label>
+                {!demo && step === "code" && <button type="button" disabled={busy} onClick={() => { setStep("email"); setError(null); setNotice(null); }}>Change address</button>}
+              </div>
+              <Input id="email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false}
+                placeholder={demo ? DEMO_EMAIL : `firstname.lastname@${domain}`} value={email} readOnly={!demo && step === "code"} disabled={busy}
+                onChange={e => { setEmail(e.target.value); if (error) setError(null); }}
+                aria-invalid={error?.field === "email"} aria-describedby={error?.field === "email" ? "email-error" : undefined} />
+              {error?.field === "email" && <p id="email-error" role="alert" className="auth-field-error">{error.message}</p>}
             </div>
-          )}
-
-          {step === "code" && (
-            <button
-              type="button"
-              onClick={() => { setStep("email"); setError(null); setNotice(null); }}
-              className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-brand"
-            >
-              <ArrowLeft size={15} /> Use a different address
+            {showCode && <div>
+              <Label htmlFor="code">{demo ? "Demo code" : "6-digit email code"}</Label>
+              <Input id="code" ref={codeRef} type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" placeholder="6-digit code" value={code} disabled={busy}
+                onChange={e => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); if (error) setError(null); }}
+                aria-invalid={error?.field === "code"} aria-describedby={error?.field === "code" ? "code-error" : undefined} className="auth-code" />
+              {error?.field === "code" && <p id="code-error" role="alert" className="auth-field-error">{error.message}</p>}
+            </div>}
+            <button type="submit" disabled={busy} className="auth-submit">
+              {busy ? <><Loader2 size={18} className="animate-spin" aria-hidden="true" />{step === "email" ? "Sending code…" : "Checking code…"}</> : <>{demo ? "Open the tools" : step === "email" ? "Email me a code" : "Confirm & continue"}<ArrowRight size={18} aria-hidden="true" /></>}
             </button>
-          )}
-
-          <h2 className="text-2xl font-bold text-foreground">{step === "code" ? "Enter your code" : "Sign in"}</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {step === "code"
-              ? prefilled
-                ? "Your code is filled in from the email. Press Confirm to continue."
-                : "Check your official mailbox for an email from PDFDock."
-              : "Enter your official email and we'll send you a code. First time here? It's the same: there's nothing else to fill in."}
-          </p>
-
-          {notice && step === "code" && (
-            <div className="mt-5 flex gap-3 rounded-md border border-brand/30 bg-brand-tint p-3 text-sm text-foreground">
-              <Mail size={17} className="mt-0.5 shrink-0 text-brand" />
-              <span>{notice}</span>
-            </div>
-          )}
-
-          {error && !error.field && (
-            <div role="alert" className="mt-5 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-destructive">
-              {error.message}
-            </div>
-          )}
-
-          {step === "email" ? (
-            <form onSubmit={requestCode} className="mt-7 space-y-5" noValidate>
-              <div>
-                <Label htmlFor="email" className="text-sm font-semibold">Official email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  autoFocus
-                  placeholder={`firstname.lastname@${domain}`}
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); if (error?.field === "email") setError(null); }}
-                  aria-invalid={error?.field === "email"}
-                  aria-describedby="email-error"
-                  className={inputClass}
-                />
-                {error?.field === "email" && <p id="email-error" className="mt-1.5 text-xs font-medium text-destructive">{error.message}</p>}
-              </div>
-              <button type="submit" disabled={busy} className={primary}>
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} Email me a code
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={verify} className="mt-7 space-y-5" noValidate>
-              <div>
-                <Label htmlFor="code" className="text-sm font-semibold">6-digit code</Label>
-                <Input
-                  id="code"
-                  ref={codeRef}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]*"
-                  placeholder="000000"
-                  value={code}
-                  // Digits only, at most 6. No maxLength attribute: it would cut a
-                  // pasted "123 456" to "123 45" before the spaces are stripped.
-                  onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); if (error?.field === "code") setError(null); }}
-                  aria-describedby="code-error"
-                  className="mt-1.5 h-14 rounded-md border-input bg-card text-center font-mono text-2xl tracking-[0.5em] focus-visible:ring-brand"
-                />
-                {error?.field === "code" && <p id="code-error" className="mt-1.5 text-xs font-medium text-destructive">{error.message}</p>}
-                {email && <p className="mt-1.5 text-xs text-muted-foreground">For {email.trim().toLowerCase()}</p>}
-              </div>
-              <button type="submit" disabled={busy} className={primary}>
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Confirm
-              </button>
-              <p className="text-center text-sm text-muted-foreground">
-                Didn't get it? Check your junk folder, or{" "}
-                {cooldown > 0 ? (
-                  <span>send a new code in {cooldown}s</span>
-                ) : (
-                  <button type="button" onClick={() => requestCode()} className="font-semibold text-brand hover:underline">send a new code</button>
-                )}
-                .
-              </p>
-            </form>
-          )}
-
-          <div className="mt-10 flex items-start gap-2.5 border-t border-border pt-5 text-xs text-muted-foreground">
-            <ShieldCheck size={15} className="mt-0.5 shrink-0 text-brand" />
-            <span>
-              We keep only your email address, so we know it's FC staff using the tools. We don't record what you do here, and we never see your documents.
-            </span>
-          </div>
-        </div>
+            {!demo && step === "code" && <p className="auth-resend">{prefilled ? "Code filled from your email. " : "Check your inbox and junk folder. "}
+              {cooldown > 0 ? <span>Resend in {cooldown}s.</span> : <button type="button" disabled={busy} onClick={() => requestCode()}>Send a new code</button>}
+            </p>}
+          </form>
+          {demo && <div className="auth-demo-details"><div><strong>Use these demo details</strong><button type="button" onClick={fillDemo}>Fill demo details <ArrowRight size={14} aria-hidden="true" /></button></div><p><span>{DEMO_EMAIL}</span><span>Code: <b>{DEMO_CODE}</b></span></p><p className="auth-demo-note">Public test access · Use sample documents.</p></div>}
+          <p className="auth-privacy"><ShieldCheck size={18} aria-hidden="true" /><span>{demo ? "Demo access opens the tools on this device. It doesn’t create a staff account or connect to FC records." : "Most tools process documents on this device. PDF to Word, when enabled, uses the conversion server."}</span></p>
+        </section>
       </main>
+      <footer className="auth-footer"><span>Built for {brand.orgName} staff.</span><span>Photo: <a href="https://commons.wikimedia.org/wiki/File:Kakum_National_Park,_Ghana.jpg" target="_blank" rel="noreferrer">ZSM</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a> · cropped</span></footer>
     </div>
   );
 };
-
 export default AuthPage;

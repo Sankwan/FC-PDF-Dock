@@ -1,3 +1,4 @@
+import { conversionServer } from "@/brand";
 import { ShieldCheck } from "lucide-react";
 
 const steps = [
@@ -30,7 +31,7 @@ const HowItWorks = () => (
           <h3 className="font-semibold text-white">Private by design</h3>
           <p className="mt-1 text-sm text-white/70">
             Documents are processed inside your browser. The only exception is PDF to Word, which sends the file to
-            the FC conversion server. Its temporary working files are deleted after the request finishes. Scanner drafts stay in this browser until you clear them; recovery expires after 24 hours.
+            the {conversionServer}. Its temporary working files are deleted after the request finishes. Scanner drafts stay in this browser until you clear them; recovery expires after 24 hours.
           </p>
         </div>
       </div>

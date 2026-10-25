@@ -33,6 +33,7 @@ SCANNED_TEXT_THRESHOLD = 50
 # other in-flight one). Independent of WEB_CONCURRENCY, which limits
 # uvicorn *worker processes*, not threads/processes within one conversion.
 OCR_JOBS = int(os.environ.get("OCR_JOBS", "2"))
+MAX_PAGES = int(os.environ.get("MAX_PAGES", "100"))
 
 
 def _is_valid_xml_char(cp: int) -> bool:
@@ -81,7 +82,10 @@ def make_pdf_searchable(input_pdf: Path, ocr_pdf: Path) -> None:
         str(input_pdf),
         str(ocr_pdf),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
+    except subprocess.TimeoutExpired as err:
+        raise ConversionError("OCR took too long. Try a smaller document.") from err
     if result.returncode != 0:
         # Trim stderr — OCRmyPDF can be verbose, and this ends up in logs only,
         # never returned to the caller (see main.py's error handling).
@@ -138,6 +142,16 @@ def build_docx_from_ocr_text(ocr_pdf_path: Path, docx_path: Path) -> None:
 
 def process_pdf_to_word(input_pdf: Path, output_docx: Path) -> None:
     """Runs the full pipeline. Raises ConversionError on any expected failure."""
+    try:
+        with fitz.open(input_pdf) as document:
+            if document.needs_pass:
+                raise ConversionError("Remove the PDF password before converting.")
+            if not 0 < len(document) <= MAX_PAGES:
+                raise ConversionError(f"Use a PDF with 1 to {MAX_PAGES} pages.")
+    except ConversionError:
+        raise
+    except Exception as err:
+        raise ConversionError("The PDF could not be opened.") from err
     with tempfile.TemporaryDirectory() as tmp:
         if is_pdf_scanned(input_pdf):
             logger.info("Scanned PDF detected — running OCRmyPDF, then building DOCX from OCR text")

@@ -32,7 +32,7 @@ EXPOSE 8000
 # (not baked in at build time), so this still checks the right port
 # whether that's the local default (8000) or whatever Railway assigned.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import urllib.request,sys,os; p=os.environ.get('PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/health', timeout=3).status == 200 else 1)"
+  CMD python -c "import urllib.request,sys,os; p=os.environ.get('PORT','8000'); h='[::1]' if os.environ.get('HOST')=='::' else '127.0.0.1'; opener=urllib.request.build_opener(urllib.request.ProxyHandler({})); sys.exit(0 if opener.open(f'http://{h}:{p}/health', timeout=3).status == 200 else 1)"
 
 # Shell form (not exec/JSON-array form) so $PORT and $WEB_CONCURRENCY
 # actually get expanded at container start — an exec-form CMD would pass
@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # issue) — that warning is expected and fine to ignore here; switching this
 # back to JSON-array form would silently break the $PORT/$WEB_CONCURRENCY
 # substitution instead.
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}
+CMD exec uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}

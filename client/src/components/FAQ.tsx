@@ -1,3 +1,4 @@
+import { conversionServer, features } from "@/brand";
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
 
@@ -6,7 +7,7 @@ const faqs = [
     id: "upload",
     question: "Do my files get uploaded anywhere?",
     answer:
-      "Most tools process files in your browser. PDF to Word sends your PDF to the FC conversion server, which deletes its temporary working files after the request finishes.",
+      `Most tools process files in your browser. When enabled, PDF to Word sends your PDF to the ${conversionServer}, which deletes its temporary working files after the request finishes.${features.demoMode ? " Use sample documents during this public test." : ""}`,
   },
   {
     id: "size",
