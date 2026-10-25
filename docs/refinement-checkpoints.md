@@ -31,3 +31,9 @@ Scope: preserve the existing FC identity and improve the complete staff web/PWA 
 - Documented scanner draft recovery, shared-device clearing, expiry cleanup on the next scanner opening, and realistic OCR timing.
 - Local file selection now uses choose wording where upload implied a network transfer.
 - Validation: TypeScript, 15 tests and production build passed; default HTML substitutions are populated and the conversion notice states this installation's actual server behavior.
+
+## 5. Re-audit
+
+- Reviewed all 20 routes at phone and desktop widths (40 views), with no horizontal page overflow or unlabelled visible native text fields.
+- Re-ran detector: no findings. Carried explicit slider names, fine control contrast and staff-account draft isolation into the final polish pass.
+- Saved the interim assessment in docs/refinement-interim-audit.md.
