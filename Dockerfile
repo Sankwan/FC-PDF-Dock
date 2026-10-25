@@ -36,7 +36,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY deploy/headoffice/security-headers.conf /etc/nginx/security-headers.conf
 
-ENV PORT=8080 AUTH_SERVICE_URL=http://auth:8100
+ENV PORT=8080 AUTH_SERVICE_URL=http://auth:8100 \
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

@@ -16,11 +16,17 @@ server {
     # Same security headers as the head-office setup (CSP, HSTS, etc.).
     include /etc/nginx/security-headers.conf;
 
+    # Use the container's DNS (including Railway private DNS). Resolve on
+    # requests so auth startup/redeploys cannot prevent the web app starting.
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+    resolver_timeout 5s;
+    set $auth_upstream "${AUTH_SERVICE_URL}";
+
     # Keep auth same-origin for the browser while the auth service stays
     # private. Set AUTH_SERVICE_URL to the auth service's private Railway URL.
     location /api/auth/ {
         client_max_body_size 16k;
-        proxy_pass ${AUTH_SERVICE_URL};
+        proxy_pass $auth_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
