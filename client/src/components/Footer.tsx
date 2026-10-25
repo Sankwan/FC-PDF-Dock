@@ -12,7 +12,7 @@ const Footer = () => (
             <img src={brand.logo} alt="Forestry Commission" className="h-12 w-auto" />
           </div>
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">
-            {brand.name} is Forestry Commission's document toolkit for staff. Files are processed on your own device.
+            {brand.name} is Forestry Commission's document toolkit for staff. Most tools process files on your device. PDF to Word uses the FC server.
           </p>
           <p className="mt-3 text-xs text-muted-foreground">
             {ORG.name} · {ORG.headOffice} · {ORG.ministry}

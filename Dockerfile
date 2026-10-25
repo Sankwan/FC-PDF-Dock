@@ -11,7 +11,7 @@ WORKDIR /app
 ARG VITE_APP_NAME="PDFDock"
 ARG VITE_APP_SHORT_NAME="FC PDFDock"
 ARG VITE_ORG_NAME="Forestry Commission"
-ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded."
+ARG VITE_APP_DESCRIPTION="Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server."
 ARG VITE_THEME_COLOR="#0E2516"
 ARG VITE_AUTH_REQUIRED="true"
 ARG VITE_STAFF_EMAIL_DOMAIN="fc.gov.gh"

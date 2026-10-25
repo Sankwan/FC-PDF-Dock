@@ -147,7 +147,7 @@ const ImageToPdf = () => {
                 maxSizeInMB={20}
                 multiple
                 onFilesSelected={handleImagesSelected}
-                title="Upload Images"
+                title="Choose images"
                 description="JPG, PNG, WebP, BMP, GIF, TIFF, HEIC/HEIF and browser-supported AVIF. Animated GIFs use the first frame."
                 buttonText="Select Images"
                 icon={<Images size={36} />}

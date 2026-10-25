@@ -3,11 +3,11 @@
 Document tools for Forestry Commission (Ghana) staff. Every tool except PDF
 to Word runs inside the staff member's own browser: files are opened,
 changed and saved on their device and never uploaded. It installs as an app
-on Windows, Mac, Android and iPhone and keeps working without internet.
+on supported Windows, Mac, Android and iPhone browsers. Local tools work offline after their required assets have been downloaded.
 
 Staff sign in with their official `firstname.lastname@fc.gov.gh` address and
 a code sent to that mailbox: no passwords, no forms. Only the email address is
-kept; the app doesn't record who uses which tool.
+kept for the account; the app does not record a tool-use history. The scanner stores a draft locally for recovery. Clear it when finished on shared devices; drafts older than 24 hours are removed when the scanner next opens.
 
 **Deploying at head office:** see [`deploy/headoffice/README.md`](deploy/headoffice/README.md).
 

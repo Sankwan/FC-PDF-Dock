@@ -142,7 +142,7 @@ const CompressPdf = () => {
                 accept=".pdf,application/pdf"
                 maxSizeInMB={150}
                 onFilesSelected={handlePdfSelected}
-                title="Upload PDF"
+                title="Choose a PDF"
                 description="Drag & drop or click to browse"
                 buttonText="Select PDF"
                 icon={<FileDown size={36} />}

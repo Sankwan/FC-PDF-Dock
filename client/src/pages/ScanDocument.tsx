@@ -370,7 +370,7 @@ const ScanDocument = () => {
       if (!alive) return;
       setPendingDraft(draft);
       setDraftReady(!draft);
-      setDraftStatus(draft ? "A previous scan is available on this device." : "Drafts are saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device.");
+      setDraftStatus(draft ? "A previous scan is available on this device." : "Scan drafts stay in this browser for recovery. Clear them when you finish on a shared device; drafts older than 24 hours are removed when you next open the scanner.");
     }).catch(() => { if (alive) { setDraftReady(true); setDraftStatus("Draft recovery is unavailable in this browser. Save your PDF before leaving this page."); } });
     return () => { alive = false; };
   }, []);
@@ -379,9 +379,9 @@ const ScanDocument = () => {
     if (!draftReady) return;
     let alive = true;
     const hasWork = pages.length > 0 || Boolean(editing);
-    setDraftStatus(hasWork ? "Saving draft on this device…" : "Drafts are saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device.");
+    setDraftStatus(hasWork ? "Saving draft on this device…" : "Scan drafts stay in this browser for recovery. Clear them when you finish on a shared device; drafts older than 24 hours are removed when you next open the scanner.");
     writeScanDraft(hasWork ? { version: 1, savedAt: Date.now(), pages, editing, name, pageSize, searchable } : null)
-      .then(() => { if (alive && hasWork) setDraftStatus("Draft saved on this device for 24 hours. Clear the draft when you finish, especially on a shared device."); })
+      .then(() => { if (alive && hasWork) setDraftStatus("Draft saved in this browser. Recovery is available for 24 hours. Clear the draft when you finish on a shared device."); })
       .catch(() => { if (alive) setDraftStatus("Draft could not be saved. Device storage may be full or blocked. Save your PDF before leaving this page."); });
     return () => { alive = false; };
   }, [pages, editing, name, pageSize, searchable, draftReady]);
@@ -691,7 +691,7 @@ const ScanDocument = () => {
                   </div>
                   <label htmlFor="searchable" className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
                     <Checkbox id="searchable" className="mt-0.5" checked={searchable} onCheckedChange={(c) => { setSearchable(c === true); setResult(null); }} />
-                    <span><span className="text-foreground">Make text searchable</span><span className="block text-xs text-muted-foreground">Reads the text so you can search and copy it later. Adds a few seconds per page.</span></span>
+                    <span><span className="text-foreground">Make text searchable</span><span className="block text-xs text-muted-foreground">Reads the text so you can search and copy it later. Takes longer on older phones and large scans.</span></span>
                   </label>
 
                   {building && (

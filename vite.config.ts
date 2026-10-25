@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   const appShortName = env.VITE_APP_SHORT_NAME || "FC PDFDock";
   const appDescription =
     env.VITE_APP_DESCRIPTION ||
-    "Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded.";
+    "Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server.";
   // Keep in sync with --chrome in client/src/index.css
   const themeColor = env.VITE_THEME_COLOR || "#0E2516";
 

@@ -110,7 +110,7 @@ const WatermarkPdf = () => {
                 maxSizeInMB={100}
                 multiple={false}
                 onFilesSelected={handlePdfSelected}
-                title="Upload PDF"
+                title="Choose a PDF"
                 description="Drag & drop or click to browse"
                 buttonText="Select PDF"
                 icon={<Stamp size={36} />}

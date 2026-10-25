@@ -114,9 +114,9 @@ const PdfToWord = () => {
                 <p className="font-semibold">Currently available at head office only</p>
                 <p className="mt-0.5">
                   PDF to Word uses the conversion server at Head Office, so for now it only works on the head-office network.
-                  An update for regional and district offices will roll out soon. All other tools work everywhere.
+                  If you are outside that network, use the other document tools or contact MIS/IT for access.
                 </p>
-                <p className="mt-1.5 text-xs opacity-80">Your file is sent only to the server, converted, and deleted immediately. It is never stored. Converting pdf to word needs a server to work properly</p>
+                <p className="mt-1.5 text-xs opacity-80">This installation sends your PDF to the FC conversion server. Its temporary working files are deleted after the conversion request finishes.</p>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ const PdfToWord = () => {
                     maxSizeInMB={50}
                     multiple={false}
                     onFilesSelected={handlePdfSelected}
-                    title="Upload a PDF"
+                    title="Choose a PDF"
                     description="Drag & drop or click to browse"
                     buttonText="Select PDF"
                     icon={<FileText size={36} />}
