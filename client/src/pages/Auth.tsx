@@ -54,7 +54,7 @@ const BrandPanel = () => (
       </ul>
     </div>
 
-    <p className="hidden text-xs text-white/45 lg:block">For Forestry Commission staff.</p>
+    <p className="hidden text-xs text-white/75 lg:block">For Forestry Commission staff.</p>
   </aside>
 );
 

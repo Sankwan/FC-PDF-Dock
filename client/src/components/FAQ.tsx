@@ -6,7 +6,7 @@ const faqs = [
     id: "upload",
     question: "Do my files get uploaded anywhere?",
     answer:
-      "No. Every tool except PDF to Word works entirely inside your browser, on your own computer or phone. PDF to Word sends the file to Head-Office server to convert and then deletes it straight away.",
+      "Most tools process files in your browser. PDF to Word sends your PDF to the FC conversion server, which deletes its temporary working files after the request finishes.",
   },
   {
     id: "size",
@@ -24,7 +24,7 @@ const faqs = [
     id: "account",
     question: "What do you keep about me?",
     answer:
-      "Only your official email address, so the tools stay for FC staff. PDFDock doesn't record which tools you use or what files you open.",
+      "Your staff account uses your official email address. Scanner drafts are saved in this browser for recovery, so clear them when you finish on a shared device. Drafts older than 24 hours are removed when you next open the scanner. PDFDock does not keep a history of the documents you process.",
   },
 ];
 

@@ -33,14 +33,14 @@
   --card-foreground: 120 10% 4%;
 
   --muted: 100 10% 92%;
-  --muted-foreground: 120 4% 46%;
+  --muted-foreground: 120 5% 35%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 120 10% 4%;
 
   --border: 100 9% 88%;
-  --input: 100 9% 85%;
-  --ring: var(--brand);
+  --input: 120 5% 50%;
+  --ring: 126 45% 32%;
 
   --primary: var(--brand);
   --primary-foreground: 0 0% 100%;
@@ -60,8 +60,8 @@
 .dark {
   /* Same brand hue, lifted slightly so it still reads as an accent against
      a dark background instead of receding into it. */
-  --brand: 125 42% 45%;
-  --brand-dark: 126 45% 36%;
+  --brand: 126 45% 33%;
+  --brand-dark: 126 45% 27%;
   --brand-tint: 128 22% 15%;
   --brand-logo: 125 43% 52%;
   --chrome: 140 30% 6%;
@@ -79,8 +79,8 @@
   --popover-foreground: 0 0% 95%;
 
   --border: 120 5% 22%;
-  --input: 120 5% 24%;
-  --ring: var(--brand);
+  --input: 120 7% 52%;
+  --ring: 126 45% 32%;
 
   --primary: var(--brand);
   --primary-foreground: 0 0% 100%;
@@ -103,4 +103,53 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+@layer base {
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+  .dark { --ring: 125 55% 65%; }
+  .dark .text-brand { color: hsl(125 48% 70%); }
+  .dark .text-brand-dark { color: hsl(125 48% 75%); }
+  ::selection { background: hsl(var(--brand-tint)); color: hsl(var(--foreground)); }
+  input, textarea { caret-color: hsl(var(--foreground)); }
+  html { scroll-padding-top: 6rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-spin, .animate-pulse { animation: none; }
+    .transition-all, .transition-transform, .transition-opacity { transition: none; }
+    [class*="animate-in"], [class*="animate-out"] { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+}
+
+/* Shared web interaction sizing. Checkboxes keep their native visual size;
+   their associated label supplies the larger touch area. */
+@layer base {
+  button:not([role="checkbox"]):not([role="radio"]),
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select, textarea {
+    min-height: 2.75rem;
+  }
+  button:not([role="checkbox"]):not([role="radio"]) { min-width: 2.75rem; }
+  input, select, textarea { font-size: 1rem; }
+  label:has([role="checkbox"]), label:has(input[type="checkbox"]) { min-height: 2.75rem; }
+  :where(main p, main li, main label) { overflow-wrap: anywhere; }
+  @media (max-width: 639px) {
+    main .text-sm { font-size: 1rem; line-height: 1.5; }
+    main .text-xs { font-size: .875rem; line-height: 1.5; }
+    main input, main select, main textarea { font-size: 1rem; }
+  }
+}
+
+@layer utilities {
+  :root :is(input, select, textarea) { font-size: 1rem; }
+  main p.text-sm { font-size: 1rem; line-height: 1.6; }
+}
+
+@layer utilities {
+  :root :is(input, textarea)::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
+  main h1 { text-wrap: balance; }
+  main h2, main h3 { text-wrap: pretty; }
 }

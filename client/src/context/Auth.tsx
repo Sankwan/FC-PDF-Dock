@@ -146,6 +146,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = useCallback(async () => {
     try {
+      const { writeScanDraft } = await import("@/lib/scanDraft");
+      if (user?.email) await writeScanDraft(null, user.email);
+    } catch { /* Local draft storage may be unavailable. Account scopes still isolate drafts. */ }
+    try {
       await authFetch("/logout", { method: "POST", body: {} });
     } catch {
       /* signing out locally still matters when offline */
@@ -153,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     writeCache(null);
     setUser(null);
     setStatus("signed-out");
-  }, []);
+  }, [user?.email]);
 
   const value = useMemo(
     () => ({ status, user, offline, setSignedIn, signOut, refresh }),

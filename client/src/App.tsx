@@ -10,23 +10,27 @@ import { features } from "@/brand";
 import UnlockPdfDialog from "@/components/UnlockPdfDialog";
 import Home from "@/pages/Home";
 import AuthPage from "@/pages/Auth";
-import MergePdf from "@/pages/MergePdf";
-import SplitPdf from "@/pages/SplitPdf";
-import CompressPdf from "@/pages/CompressPdf";
-import PdfToImage from "@/pages/PdfToImage";
-import ImageToPdf from "@/pages/ImageToPdf";
-import WatermarkPdf from "@/pages/WatermarkPdf";
-import ProtectPdf from "@/pages/ProtectPdf";
-import SignPdf from "@/pages/SignPdf";
-import OcrPdf from "@/pages/OcrPdf";
-import WordToPdf from "@/pages/WordToPdf";
-import PdfToWord from "@/pages/PdfToWord";
-import OrganizePdf from "@/pages/OrganizePdf";
+const MergePdf = lazy(() => import("@/pages/MergePdf"));
+const SplitPdf = lazy(() => import("@/pages/SplitPdf"));
+const CompressPdf = lazy(() => import("@/pages/CompressPdf"));
+const PdfToImage = lazy(() => import("@/pages/PdfToImage"));
+const ImageToPdf = lazy(() => import("@/pages/ImageToPdf"));
+const WatermarkPdf = lazy(() => import("@/pages/WatermarkPdf"));
+const ProtectPdf = lazy(() => import("@/pages/ProtectPdf"));
+const SignPdf = lazy(() => import("@/pages/SignPdf"));
+const OcrPdf = lazy(() => import("@/pages/OcrPdf"));
+const WordToPdf = lazy(() => import("@/pages/WordToPdf"));
+const PdfToWord = lazy(() => import("@/pages/PdfToWord"));
+const OrganizePdf = lazy(() => import("@/pages/OrganizePdf"));
 
 // Heavier tools load on demand so the first install stays small.
 const RedactPdf = lazy(() => import("@/pages/RedactPdf"));
 const ScanDocument = lazy(() => import("@/pages/ScanDocument"));
 const Letterhead = lazy(() => import("@/pages/Letterhead"));
+const PdfMetadata = lazy(() => import("@/pages/PdfMetadata"));
+const PdfForms = lazy(() => import("@/pages/PdfForms"));
+const QrTools = lazy(() => import("@/pages/QrTools"));
+const ImageConvert = lazy(() => import("@/pages/ImageConvert"));
 
 const AUTH_PATHS = ["/sign-in", "/create-account", "/verify"];
 
@@ -62,6 +66,10 @@ function Tools() {
           <Route path="/scan" component={ScanDocument} />
           <Route path="/watermark-pdf" component={WatermarkPdf} />
           <Route path="/letterhead" component={Letterhead} />
+          <Route path="/pdf-properties" component={PdfMetadata} />
+          <Route path="/pdf-forms" component={PdfForms} />
+          <Route path="/qr-codes" component={QrTools} />
+          <Route path="/convert-images" component={ImageConvert} />
           <Route path="/protect-pdf" component={ProtectPdf} />
           <Route path="/redact-pdf" component={RedactPdf} />
           <Route path="/sign-pdf" component={SignPdf} />
@@ -99,14 +107,16 @@ function Gate() {
   return <Tools />;
 }
 
+function SessionWorkspace() {
+  const { user, status } = useAuth();
+  return <FileVaultProvider key={user?.email ?? status}><ScrollToTop /><Gate /></FileVaultProvider>;
+}
+
 function App() {
   return (
     <AuthProvider>
-      <FileVaultProvider>
-        <ScrollToTop />
-        <Gate />
-        <Toaster />
-      </FileVaultProvider>
+      <SessionWorkspace />
+      <Toaster />
     </AuthProvider>
   );
 }

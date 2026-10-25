@@ -1,0 +1,34 @@
+name: FC PDFDock quality
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            services/auth/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm ci
+        working-directory: services/auth
+      - run: npm test
+        working-directory: services/auth
+      - run: npm audit --omit=dev
+      - run: npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fc-pdfdock-web
+          path: dist/
+          retention-days: 7

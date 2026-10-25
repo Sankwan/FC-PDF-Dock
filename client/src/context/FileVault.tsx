@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, useRef, useEffect } from "react";
 
 export interface VaultFile {
   id: string;
@@ -42,6 +42,9 @@ let counter = 0;
 
 export const FileVaultProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [files, setFiles] = useState<VaultFile[]>([]);
+  const urls = useRef(new Set<string>());
+  useEffect(() => { urls.current = new Set(files.map(file => file.url)); }, [files]);
+  useEffect(() => () => urls.current.forEach(url => URL.revokeObjectURL(url)), []);
 
   const addFiles = useCallback((incoming: File[]) => {
     const created = incoming.map((file) => ({
@@ -52,9 +55,11 @@ export const FileVaultProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }));
     setFiles((prev) => {
       const seen = new Set(prev.map((f) => `${f.file.name}:${f.file.size}:${f.file.lastModified}`));
-      const deduped = created.filter(
-        (f) => !seen.has(`${f.file.name}:${f.file.size}:${f.file.lastModified}`)
-      );
+      const deduped = created.filter(f => {
+        const key = `${f.file.name}:${f.file.size}:${f.file.lastModified}`;
+        if (seen.has(key)) { URL.revokeObjectURL(f.url); return false; }
+        seen.add(key); return true;
+      });
       return [...prev, ...deduped];
     });
     return created;

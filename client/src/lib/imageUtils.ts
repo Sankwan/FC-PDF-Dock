@@ -1,5 +1,5 @@
-import { jsPDF } from "jspdf";
-import { createFile } from "./fileUtils";
+import { PDFDocument } from "pdf-lib";
+import { canvasBlob, imageCanvas } from "./addons/images";
 
 interface ImageToPdfOptions {
   pageSize?: "a4" | "letter" | "legal" | "custom";
@@ -10,148 +10,36 @@ interface ImageToPdfOptions {
   filename?: string;
 }
 
-/**
- * Converts image files to a PDF
- */
-export const convertImagesToPdf = async (
-  imageFiles: File[],
-  options: ImageToPdfOptions = {}
-): Promise<File> => {
-  if (imageFiles.length === 0) {
-    throw new Error("No image files provided");
-  }
-
-  const {
-    pageSize = "a4",
-    orientation = "portrait",
-    quality = 0.8,
-    customWidth,
-    customHeight,
-    filename = "images.pdf",
-  } = options;
-
-  // Create a new PDF document
-  const doc = new jsPDF({
-    orientation,
-    unit: "mm",
-    format: pageSize === "custom" && customWidth && customHeight
-      ? [customWidth, customHeight]
-      : pageSize,
-  });
-
-  // Get PDF dimensions
-  const pdfWidth = doc.internal.pageSize.getWidth();
-  const pdfHeight = doc.internal.pageSize.getHeight();
-
-  // Add each image to the PDF
-  for (let i = 0; i < imageFiles.length; i++) {
-    // Add a new page for each image after the first
-    if (i > 0) {
-      doc.addPage();
-    }
-
-    const imageFile = imageFiles[i];
-    const imageURL = await createImageURL(imageFile);
-
+/** Use the same PDF engine as the other tools; avoid a second PDF/HTML stack. */
+export const convertImagesToPdf = async (imageFiles: File[], options: ImageToPdfOptions = {}): Promise<File> => {
+  if (!imageFiles.length) throw new Error("Choose at least one image.");
+  const { pageSize = "a4", orientation = "portrait", quality = .8, customWidth, customHeight, filename = "images.pdf" } = options;
+  if (!Number.isFinite(quality) || quality < .1 || quality > 1) throw new Error("Choose an image quality from 10% to 100%.");
+  const sizes = { a4: [210, 297], letter: [215.9, 279.4], legal: [215.9, 355.6] } as const;
+  let dimensions: readonly number[];
+  if (pageSize === "custom") {
+    if (!customWidth || !customHeight || !Number.isFinite(customWidth) || !Number.isFinite(customHeight) || customWidth < 10 || customHeight < 10 || customWidth > 2000 || customHeight > 2000)
+      throw new Error("Custom page dimensions must be between 10 and 2,000 mm.");
+    dimensions = [customWidth, customHeight];
+  } else { dimensions = sizes[pageSize]; }
+  const [short, long] = [...dimensions].sort((a, b) => a - b);
+  const [pw, ph] = (orientation === "landscape" ? [long, short] : [short, long]).map(mm => mm * 72 / 25.4);
+  const doc = await PDFDocument.create();
+  for (const file of imageFiles) {
+    const canvas = await imageCanvas(file);
     try {
-      await addImageToPdf(doc, imageFile, imageURL, pdfWidth, pdfHeight, quality);
-    } catch (error) {
-      console.error(`Error adding image ${imageFile.name} to PDF:`, error);
-      // Continue with next image
-    }
+      const ctx = canvas.getContext("2d")!;
+      ctx.globalCompositeOperation = "destination-over";
+      ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const blob = await canvasBlob(canvas, quality >= 1 ? "image/png" : "image/jpeg", quality);
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const image = quality >= 1 ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      const scale = Math.min(pw / image.width, ph / image.height);
+      const width = image.width * scale, height = image.height * scale;
+      doc.addPage([pw, ph]).drawImage(image, { x: (pw - width) / 2, y: (ph - height) / 2, width, height });
+    } finally { canvas.width = canvas.height = 0; }
   }
-
-  // Save the PDF
-  const pdfBlob = doc.output("blob");
-  const pdfFilename = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
-
-  return new File([pdfBlob], pdfFilename, { type: "application/pdf" });
-};
-
-/**
- * Creates a URL for an image file
- */
-const createImageURL = (imageFile: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) {
-        resolve(reader.result as string);
-      } else {
-        reject(new Error("Failed to read image file"));
-      }
-    };
-    reader.onerror = () => {
-      reject(new Error("Error reading image file"));
-    };
-    reader.readAsDataURL(imageFile);
-  });
-};
-
-/**
- * Adds an image to a PDF document, properly scaled
- */
-const addImageToPdf = (
-  doc: jsPDF,
-  imageFile: File,
-  imageURL: string,
-  pdfWidth: number,
-  pdfHeight: number,
-  quality: number
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.src = imageURL;
-
-    image.onload = () => {
-      try {
-        // Calculate image dimensions to fit the page while maintaining aspect ratio
-        const imageWidth = image.width;
-        const imageHeight = image.height;
-        const imageAspectRatio = imageWidth / imageHeight;
-
-        let finalWidth = pdfWidth;
-        let finalHeight = pdfWidth / imageAspectRatio;
-
-        // Check if image height exceeds page height
-        if (finalHeight > pdfHeight) {
-          finalHeight = pdfHeight;
-          finalWidth = pdfHeight * imageAspectRatio;
-        }
-
-        // Center the image on the page
-        const x = (pdfWidth - finalWidth) / 2;
-        const y = (pdfHeight - finalHeight) / 2;
-
-        // jsPDF trusts the format label instead of sniffing the bytes —
-        // forcing "JPEG" on PNG/WebP source data (the previous behavior)
-        // corrupts or rejects the embed. Re-encoding through a canvas
-        // (the browser already decoded JPG/PNG/WebP alike to get here)
-        // gives jsPDF a format it's guaranteed to handle correctly.
-        const canvas = document.createElement("canvas");
-        canvas.width = imageWidth;
-        canvas.height = imageHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not create canvas context");
-        ctx.drawImage(image, 0, 0);
-
-        const isJpegSource = imageFile.type === "image/jpeg" || imageFile.type === "image/jpg";
-        const encoded = isJpegSource
-          ? canvas.toDataURL("image/jpeg", quality)
-          : canvas.toDataURL("image/png");
-
-        // Add the image to the PDF
-        doc.addImage(encoded, isJpegSource ? "JPEG" : "PNG", x, y, finalWidth, finalHeight);
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    image.onerror = () => {
-      reject(new Error("Error loading image"));
-    };
-  });
+  return new File([new Uint8Array(await doc.save()).buffer], filename.toLowerCase().endsWith(".pdf") ? filename : `${filename}.pdf`, { type: "application/pdf" });
 };
 
 /**

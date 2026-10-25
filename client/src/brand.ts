@@ -11,7 +11,7 @@ export const brand = {
   orgName: env.VITE_ORG_NAME || "Forestry Commission",
   description:
     env.VITE_APP_DESCRIPTION ||
-    "Document tools for Forestry Commission staff. Files are processed on your own device and never uploaded.",
+    "Document tools for Forestry Commission staff. Most tools process files on your device; PDF to Word uses the FC server.",
   logo: "/fc/fc-logo.png",
   mark: "/fc/fc-mark.png",
 };

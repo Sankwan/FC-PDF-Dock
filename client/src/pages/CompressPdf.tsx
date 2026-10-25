@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, type KeyboardEvent } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
@@ -24,6 +24,16 @@ interface Outcome {
   unchanged?: boolean;
   hadDigitalSignature?: boolean;
 }
+
+const radioKeys = (event: KeyboardEvent<HTMLDivElement>) => {
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+  const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button[role="radio"]:not(:disabled)'));
+  const index = items.indexOf(document.activeElement as HTMLButtonElement);
+  if (index < 0 || !items.length) return;
+  event.preventDefault();
+  const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length;
+  items[next].focus(); items[next].click();
+};
 
 const CompressPdf = () => {
   const { toast } = useToast();
@@ -106,6 +116,7 @@ const CompressPdf = () => {
       type="button"
       role="radio"
       aria-checked={method === value}
+      tabIndex={method === value ? 0 : -1}
       onClick={() => setMethod(value)}
       className={`flex w-full gap-3 rounded-lg border p-4 text-left transition-colors ${
         method === value ? "border-brand bg-brand-tint" : "border-border bg-card hover:border-brand/50"
@@ -142,7 +153,7 @@ const CompressPdf = () => {
                 accept=".pdf,application/pdf"
                 maxSizeInMB={150}
                 onFilesSelected={handlePdfSelected}
-                title="Upload PDF"
+                title="Choose a PDF"
                 description="Drag & drop or click to browse"
                 buttonText="Select PDF"
                 icon={<FileDown size={36} />}
@@ -155,7 +166,7 @@ const CompressPdf = () => {
                   <div className="space-y-6 mb-6">
                     <fieldset>
                       <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Method</legend>
-                      <div role="radiogroup" className="grid gap-3">
+                      <div role="radiogroup" aria-label="Compression method" onKeyDown={radioKeys} className="grid gap-3">
                         {methodCard("keep-text", <Type size={17} />, "Keep text", "Shrinks the pictures inside the PDF and tidies its structure. Text stays selectable and searchable, and small print stays sharp.", "Recommended")}
                         {methodCard("flatten", <ImageIcon size={17} />, "Flatten to images", "Turns every page into a picture. Use only for scanned documents that are still too big after Keep text.")}
                       </div>
@@ -169,13 +180,14 @@ const CompressPdf = () => {
 
                     <fieldset>
                       <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Strength</legend>
-                      <div role="radiogroup" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div role="radiogroup" aria-label="Compression strength" onKeyDown={radioKeys} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {(Object.keys(COMPRESS_PRESETS) as CompressLevel[]).map((key) => (
                           <button
                             key={key}
                             type="button"
                             role="radio"
                             aria-checked={level === key}
+                            tabIndex={level === key ? 0 : -1}
                             onClick={() => setLevel(key)}
                             className={`rounded-lg border p-3 text-left transition-colors ${level === key ? "border-brand bg-brand-tint" : "border-border hover:border-brand/50"}`}
                           >

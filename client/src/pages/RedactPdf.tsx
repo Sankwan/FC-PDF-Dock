@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, EyeOff, Loader2, Search, Trash2, X } from "lucide-react";
+import RectangleControls, { type Rectangle } from "@/components/RectangleControls";
 import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
 import SaveShareButtons from "@/components/SaveShareButtons";
@@ -34,6 +35,7 @@ const RedactPdf = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<RedactResult | null>(null);
   const [draft, setDraft] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const [manualArea, setManualArea] = useState<Rectangle>({ x: .1, y: .1, w: .3, h: .1 });
   const surfaceRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async (files: File[]) => {
@@ -114,6 +116,8 @@ const RedactPdf = () => {
       } else if (found.length && !found.some((b) => b.page === page)) {
         setPage(found[0].page);
       }
+    } catch {
+      toast({ variant: "destructive", title: "Could not search this PDF", description: "Try OCR PDF for scanned pages, or add redaction areas manually." });
     } finally {
       setBusy(null);
       setProgress(0);
@@ -330,6 +334,15 @@ const RedactPdf = () => {
                   </ul>
                 )}
 
+                <details className="mt-4 border-t border-border pt-4">
+                  <summary className="cursor-pointer py-2 text-sm font-semibold">Add an area without dragging</summary>
+                  <RectangleControls label="New redaction area" value={manualArea} onChange={setManualArea} />
+                  <button type="button" disabled={Boolean(busy)} onClick={() => { setBoxes(prev => [...prev, manualBox(page, manualArea.x, manualArea.y, manualArea.w, manualArea.h)]); setResult(null); }} className="mt-3 min-h-11 rounded-md border border-brand px-4 text-sm font-semibold text-brand">Add area to page {page}</button>
+                  {boxes.filter(b => b.source === "manual" && b.page === page).map((b, i) => <div key={b.id} className="mt-3">
+                    <RectangleControls label={`Edit manual area ${i + 1}`} value={b} onChange={value => { setBoxes(prev => prev.map(item => item.id === b.id ? { ...item, ...value } : item)); setResult(null); }} />
+                    <button type="button" onClick={() => { setBoxes(prev => prev.filter(item => item.id !== b.id)); setResult(null); }} className="min-h-11 text-sm font-semibold text-destructive">Remove manual area {i + 1}</button>
+                  </div>)}
+                </details>
                 <div className="mt-4 space-y-2.5 border-t border-border pt-4">
                   <label htmlFor="restore" className="flex cursor-pointer items-start gap-2.5 text-sm">
                     <Checkbox id="restore" className="mt-0.5" checked={restoreText} onCheckedChange={(c) => setRestoreText(c === true)} />

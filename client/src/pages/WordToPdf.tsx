@@ -112,7 +112,7 @@ const WordToPdf = () => {
                   accept=".docx"
                   maxSizeInMB={50}
                   onFilesSelected={handleFileSelected}
-                  title="Upload a Word Document"
+                  title="Choose a Word document"
                   description="Drag & drop or click to browse (.docx only)"
                   buttonText="Select .docx File"
                   icon={<FileText size={36} />}

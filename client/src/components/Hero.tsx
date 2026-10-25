@@ -23,21 +23,21 @@ const Hero = () => {
           <div>
             <p className="text-sm font-semibold text-brand">{greeting()}{user?.firstName ? `, ${user.firstName}` : ""}</p>
             <h1 className="mt-2 text-3xl font-bold leading-tight text-foreground sm:text-4xl" style={{ textWrap: "balance" } as React.CSSProperties}>
-              What do you need to do with a document today?
+              Work on your document today?
             </h1>
             <p className="mt-3 max-w-xl text-muted-foreground">
-              Every tool here works on your own computer or phone. Your files are not uploaded, stored or seen by anyone else.
+              Most tools work on your own computer or phone without uploading files. PDF to Word uses the FC head-office server.
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2"><HardDrive size={15} className="text-brand" /> Files stay on this device</li>
-              <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Works offline once installed</li>
+              <li className="flex items-center gap-2"><WifiOff size={15} className="text-brand" /> Offline access available</li>
               <li className="flex items-center gap-2"><Server size={15} className="text-brand" /> PDF to Word: head office only</li>
             </ul>
           </div>
 
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quick start</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
               {quick.map(({ label, href, icon: Icon }) => (
                 <Link
                   key={href}

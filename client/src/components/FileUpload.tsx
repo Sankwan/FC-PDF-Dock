@@ -70,7 +70,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div className={className}>
       {carried.length > 0 && (
-        <div className="mb-4 rounded-2xl border border-black/[0.07] bg-card/70 p-3 backdrop-blur-xl">
+        <div className="mb-4 rounded-2xl border border-black/[0.07] bg-card/70 p-3 ">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Carried over from your workspace
           </p>
@@ -119,7 +119,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       <div
-        className={`cursor-pointer rounded-[24px] border border-dashed p-8 text-center backdrop-blur-xl transition-all duration-300 sm:p-12 ${
+        className={`cursor-pointer rounded-[24px] border border-dashed p-8 text-center  transition-all duration-300 sm:p-12 ${
           isDragging
             ? "border-brand bg-brand-tint/90 shadow-[0_26px_70px_-42px_rgba(43,125,53,0.45)]"
             : "border-black/[0.12] bg-card/60 hover:border-brand/60 hover:bg-card/85"

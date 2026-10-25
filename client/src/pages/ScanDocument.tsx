@@ -7,6 +7,7 @@ import ToolHeader from "@/components/ToolHeader";
 import SaveShareButtons from "@/components/SaveShareButtons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/context/Auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   FILTERS, applyFilter, canvasToBlob, detectDocument, fileToCanvas, fullQuad, loadOpenCv, rotateCanvas, warpDocument,
@@ -14,19 +15,8 @@ import {
 } from "@/lib/scanner";
 import { PAGE_SIZES, buildScanPdf, defaultScanName, type PageSize } from "@/lib/scanExport";
 
-interface ScanPage {
-  id: string;
-  photo: Blob; // original photo (JPEG), kept so the page can be re-cropped
-  photoW: number;
-  photoH: number;
-  quad: Quad;
-  filter: ScanFilter;
-  rotation: number;
-  result?: Blob;
-  resultUrl?: string;
-  resultW?: number;
-  resultH?: number;
-}
+import { readScanDraft, writeScanDraft, type ScanDraft, type ScanPage } from "@/lib/scanDraft";
+import { decodeImagePages, IMAGE_ACCEPT, IMAGE_LIMITS } from "@/lib/addons/images";
 
 type Step = "pages" | "camera" | "adjust" | "done";
 
@@ -43,7 +33,7 @@ const CameraView = ({
   cv: any;
   count: number;
   lastThumb?: string;
-  onCapture: (canvas: HTMLCanvasElement, quad: Quad | null) => void;
+  onCapture: (canvas: HTMLCanvasElement, quad: Quad | null) => void | Promise<void>;
   onImport: () => void;
   onClose: () => void;
 }) => {
@@ -54,6 +44,22 @@ const CameraView = ({
   const [error, setError] = useState<string | null>(null);
   const [torch, setTorch] = useState<boolean | null>(null);
   const [flash, setFlash] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const cameraPanel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    cameraPanel.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const keys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key !== "Tab") return;
+      const buttons = Array.from(cameraPanel.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", keys);
+    return () => { document.removeEventListener("keydown", keys); previous?.focus(); };
+  }, [onClose]);
 
   useEffect(() => {
     let stopped = false;
@@ -120,31 +126,34 @@ const CameraView = ({
     }
   };
 
-  const capture = () => {
+  const capture = async () => {
+    if (capturing) return;
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
     const c = document.createElement("canvas");
     c.width = v.videoWidth;
     c.height = v.videoHeight;
     c.getContext("2d")!.drawImage(v, 0, 0);
-    setFlash(true);
-    setTimeout(() => setFlash(false), 140);
+    setCapturing(true);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setFlash(true); setTimeout(() => setFlash(false), 140);
+    }
     let q: Quad | null = null;
     try {
       q = detectDocument(cv, c, 720);
     } catch {
       q = null;
     }
-    onCapture(c, q);
+    try { await onCapture(c, q); } finally { setCapturing(false); c.width = c.height = 0; }
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black text-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+    <div ref={cameraPanel} role="dialog" aria-modal="true" aria-label="Document camera" className="fixed inset-0 z-[60] flex flex-col bg-black text-white" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div className="flex items-center justify-between px-4 py-3">
-        <button type="button" onClick={onClose} aria-label="Close camera" className="grid h-10 w-10 place-items-center rounded-full bg-white/10"><X size={20} /></button>
+        <button type="button" onClick={onClose} aria-label="Close camera" className="grid h-11 w-11 place-items-center rounded-full bg-white/10"><X size={20} /></button>
         <span className="text-sm text-white/80">{quad ? "Page found. Hold steady" : "Point at a document"}</span>
         {torch !== null ? (
-          <button type="button" onClick={toggleTorch} aria-label={torch ? "Turn light off" : "Turn light on"} className="grid h-10 w-10 place-items-center rounded-full bg-white/10">
+          <button type="button" onClick={toggleTorch} aria-label={torch ? "Turn light off" : "Turn light on"} className="grid h-11 w-11 place-items-center rounded-full bg-white/10">
             {torch ? <Flashlight size={18} /> : <FlashlightOff size={18} />}
           </button>
         ) : <span className="w-10" />}
@@ -152,7 +161,7 @@ const CameraView = ({
 
       <div className="relative flex-1 overflow-hidden">
         {error ? (
-          <div className="grid h-full place-items-center p-8 text-center text-sm text-white/80">{error}</div>
+          <div className="grid h-full place-items-center p-8 text-center text-sm text-white/80" role="alert">{error}</div>
         ) : (
           <>
             <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" />
@@ -181,7 +190,7 @@ const CameraView = ({
         <button
           type="button"
           onClick={capture}
-          disabled={Boolean(error)}
+          disabled={Boolean(error) || !dims.w || capturing}
           aria-label="Take photo"
           className="justify-self-center grid h-[72px] w-[72px] place-items-center rounded-full border-4 border-white disabled:opacity-40"
         >
@@ -201,13 +210,14 @@ const CameraView = ({
 /* ------------------------------------------------------------------ */
 
 const CornerEditor = ({
-  cv, page, onSave, onCancel, saveLabel,
+  cv, page, onSave, onCancel, saveLabel, busy,
 }: {
   cv: any;
   page: ScanPage;
   onSave: (quad: Quad, filter: ScanFilter, rotation: number) => void;
   onCancel: () => void;
   saveLabel: string;
+  busy: boolean;
 }) => {
   const [url] = useState(() => URL.createObjectURL(page.photo));
   const [quad, setQuad] = useState<Quad>(page.quad);
@@ -250,12 +260,12 @@ const CornerEditor = ({
   const zoomH = zoomW * (H / W);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <fieldset disabled={busy} className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Crop size={16} className="text-brand" /> Adjust the corners</h2>
         <div className="flex gap-2">
-          <button type="button" onClick={redetect} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Wand2 size={15} /> Auto</button>
-          <button type="button" onClick={() => setQuad(fullQuad(W, H))} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Maximize size={15} /> Whole photo</button>
+          <button type="button" onClick={redetect} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Wand2 size={15} /> Auto</button>
+          <button type="button" onClick={() => setQuad(fullQuad(W, H))} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand"><Maximize size={15} /> Whole photo</button>
         </div>
       </div>
 
@@ -292,7 +302,17 @@ const CornerEditor = ({
                 (e.target as Element).setPointerCapture?.(e.pointerId);
                 setActive(i);
               }}
-              role="slider"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                const delta = e.shiftKey ? 10 : 1;
+                const shifts: Record<string, [number, number]> = { ArrowLeft: [-delta, 0], ArrowRight: [delta, 0], ArrowUp: [0, -delta], ArrowDown: [0, delta] };
+                if (!shifts[e.key]) return;
+                e.preventDefault();
+                const [dx, dy] = shifts[e.key];
+                setQuad(q => q.map((point, j) => j === i ? { x: Math.max(0, Math.min(W, point.x + dx)), y: Math.max(0, Math.min(H, point.y + dy)) } : point) as Quad);
+              }}
+              role="button"
+              aria-describedby="crop-keyboard-help"
               aria-label={["Top left corner", "Top right corner", "Bottom right corner", "Bottom left corner"][i]}
             />
           ))}
@@ -315,15 +335,16 @@ const CornerEditor = ({
         )}
       </div>
 
+      <p id="crop-keyboard-help" className="mt-3 text-sm text-muted-foreground">Drag a corner, or focus it and use the arrow keys. Hold Shift for larger steps.</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look</span>
         {FILTERS.map((f) => (
           <button key={f.id} type="button" onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}
-            className={`h-9 rounded-full border px-4 text-sm font-medium ${filter === f.id ? "border-brand bg-brand text-white" : "border-border text-foreground hover:border-brand"}`}>
+            className={`min-h-11 rounded-full border px-4 text-sm font-medium ${filter === f.id ? "border-brand bg-brand text-white" : "border-border text-foreground hover:border-brand"}`}>
             {f.label}
           </button>
         ))}
-        <button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand">
+        <button type="button" onClick={() => setRotation((r) => (r + 90) % 360)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm hover:border-brand hover:text-brand">
           <RotateCw size={15} /> Rotate{rotation ? ` (${rotation}°)` : ""}
         </button>
       </div>
@@ -334,7 +355,7 @@ const CornerEditor = ({
           <Check size={16} /> {saveLabel}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 };
 
@@ -344,6 +365,8 @@ const CornerEditor = ({
 
 const ScanDocument = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const draftScope = user?.email ?? "local-preview";
   const [cv, setCv] = useState<any>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
   const [pages, setPages] = useState<ScanPage[]>([]);
@@ -356,13 +379,55 @@ const ScanDocument = () => {
   const [building, setBuilding] = useState<{ done: number; total: number; stage: string } | null>(null);
   const [result, setResult] = useState<File | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const [pendingDraft, setPendingDraft] = useState<ScanDraft | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftStatus, setDraftStatus] = useState("Checking for a saved draft…");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState("");
+  const pageUrls = useRef(new Set<string>());
+
+  useEffect(() => {
+    let alive = true;
+    readScanDraft(draftScope).then(draft => {
+      if (!alive) return;
+      setPendingDraft(draft);
+      setDraftReady(!draft);
+      setDraftStatus(draft ? "A previous scan is available on this device." : "Scan drafts stay in this browser for recovery. Clear them when you finish on a shared device; drafts older than 24 hours are removed when you next open the scanner.");
+    }).catch(() => { if (alive) { setDraftReady(true); setDraftStatus("Draft recovery is unavailable in this browser. Save your PDF before leaving this page."); } });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    let alive = true;
+    const hasWork = pages.length > 0 || Boolean(editing);
+    setDraftStatus(hasWork ? "Saving draft on this device…" : "Scan drafts stay in this browser for recovery. Clear them when you finish on a shared device; drafts older than 24 hours are removed when you next open the scanner.");
+    writeScanDraft(hasWork ? { version: 1, savedAt: Date.now(), pages, editing, name, pageSize, searchable } : null, draftScope)
+      .then(() => { if (alive && hasWork) setDraftStatus("Draft saved in this browser. Recovery is available for 24 hours. Clear the draft when you finish on a shared device."); })
+      .catch(() => { if (alive) setDraftStatus("Draft could not be saved. Device storage may be full or blocked. Save your PDF before leaving this page."); });
+    return () => { alive = false; };
+  }, [pages, editing, name, pageSize, searchable, draftReady, draftScope]);
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    setPages(pendingDraft.pages.map(p => ({ ...p, resultUrl: p.result ? URL.createObjectURL(p.result) : undefined })));
+    setEditing(pendingDraft.editing);
+    setStep(pendingDraft.editing ? "adjust" : "pages");
+    setName(pendingDraft.name); setPageSize(pendingDraft.pageSize); setSearchable(pendingDraft.searchable);
+    setPendingDraft(null); setDraftReady(true);
+  };
   const hasCamera = typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && window.isSecureContext;
 
   useEffect(() => {
     loadOpenCv().then(setCv).catch((e) => setEngineError(e.message));
   }, []);
 
-  useEffect(() => () => pages.forEach((p) => p.resultUrl && URL.revokeObjectURL(p.resultUrl)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const next = new Set(pages.flatMap(p => p.resultUrl ? [p.resultUrl] : []));
+    pageUrls.current.forEach(url => { if (!next.has(url)) URL.revokeObjectURL(url); });
+    pageUrls.current = next;
+  }, [pages]);
+  useEffect(() => () => pageUrls.current.forEach(url => URL.revokeObjectURL(url)), []);
 
   const render = useCallback(async (p: ScanPage): Promise<ScanPage> => {
     const photo = await fileToCanvas(p.photo);
@@ -370,11 +435,17 @@ const ScanDocument = () => {
     const filtered = applyFilter(cv, flat, p.filter);
     const final = rotateCanvas(filtered, p.rotation);
     const blob = p.filter === "bw" ? await canvasToBlob(final, "image/png") : await canvasToBlob(final, "image/jpeg", 0.85);
-    if (p.resultUrl) URL.revokeObjectURL(p.resultUrl);
+
     return { ...p, result: blob, resultUrl: URL.createObjectURL(blob), resultW: final.width, resultH: final.height };
   }, [cv]);
 
   const startEdit = async (canvas: HTMLCanvasElement, quad: Quad | null, fromCamera: boolean) => {
+    const pixels = pages.reduce((sum, page) => sum + page.photoW * page.photoH, 0) + canvas.width * canvas.height;
+    if (pages.length >= 30 || pixels > IMAGE_LIMITS.totalPixels || canvas.width * canvas.height > IMAGE_LIMITS.pixels) {
+      setImportError("This scan has reached its image limit. Save it, clear the draft and start a new scan.");
+      setStep("pages");
+      return;
+    }
     const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
     const lastFilter = pages[pages.length - 1]?.filter ?? "enhanced";
     const page: ScanPage = {
@@ -386,32 +457,38 @@ const ScanDocument = () => {
   };
 
   const importPhotos = async (files: File[]) => {
-    if (!files.length || !cv) return;
-    // One photo: open the corner editor. Several: auto-crop them all and
-    // let the person fix any page afterwards from the page list.
-    if (files.length === 1) {
-      const canvas = await fileToCanvas(files[0]);
-      startEdit(canvas, detectDocument(cv, canvas, 720), false);
-      return;
-    }
-    setProcessing(true);
+    if (!files.length || !cv || processing || !draftReady) return;
+    setProcessing(true); setImportError(null);
+    const added: ScanPage[] = [];
     try {
-      const added: ScanPage[] = [];
-      for (const f of files) {
-        const canvas = await fileToCanvas(f);
-        const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
-        const q = detectDocument(cv, canvas, 720) ?? fullQuad(canvas.width, canvas.height, 0.02);
-        added.push(await render({ id: pid(), photo, photoW: canvas.width, photoH: canvas.height, quad: q, filter: "enhanced", rotation: 0 }));
-      }
-      setPages((p) => [...p, ...added]);
-      setResult(null);
-      setStep("pages");
+      const decoded = await decodeImagePages(files, setImportStatus);
+      const existingPixels = pages.reduce((sum, p) => sum + p.photoW * p.photoH, 0);
+      const canvases = [];
+      let pixels = existingPixels;
+      try {
+        for (const file of decoded) {
+          const canvas = await fileToCanvas(file);
+          canvases.push(canvas);
+          pixels += canvas.width * canvas.height;
+        }
+        if (pages.length + canvases.length > 30 || pixels > IMAGE_LIMITS.totalPixels)
+          throw new Error("Keep each scan to 30 pages and 80 megapixels. Save this PDF, then start another scan.");
+        if (canvases.length === 1) {
+          await startEdit(canvases[0], detectDocument(cv, canvases[0], 720), false);
+        } else {
+          for (const canvas of canvases) {
+            const photo = await canvasToBlob(canvas, "image/jpeg", 0.92);
+            const q = detectDocument(cv, canvas, 720) ?? fullQuad(canvas.width, canvas.height, 0.02);
+            added.push(await render({ id: pid(), photo, photoW: canvas.width, photoH: canvas.height, quad: q, filter: "enhanced", rotation: 0 }));
+          }
+          setPages(p => [...p, ...added]); setStep("pages");
+        }
+        setResult(null);
+      } finally { canvases.forEach(c => { c.width = c.height = 0; }); }
     } catch (err) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Couldn't read a photo", description: "Try a JPG or PNG image." });
-    } finally {
-      setProcessing(false);
-    }
+      added.forEach(p => p.resultUrl && URL.revokeObjectURL(p.resultUrl));
+      setImportError(err instanceof Error ? err.message : "Could not read this photo. Choose a JPG or PNG copy and try again.");
+    } finally { setProcessing(false); setImportStatus(""); }
   };
 
   const saveEdit = async (quad: Quad, filter: ScanFilter, rotation: number) => {
@@ -431,7 +508,8 @@ const ScanDocument = () => {
     }
   };
 
-  const movePage = (i: number, d: number) =>
+  const movePage = (i: number, d: number) => {
+    setResult(null);
     setPages((prev) => {
       const j = i + d;
       if (j < 0 || j >= prev.length) return prev;
@@ -439,6 +517,7 @@ const ScanDocument = () => {
       [next[i], next[j]] = [next[j], next[i]];
       return next;
     });
+  };
 
   const setAllFilters = async (filter: ScanFilter) => {
     setProcessing(true);
@@ -447,6 +526,8 @@ const ScanDocument = () => {
       for (const p of pages) next.push(p.filter === filter ? p : await render({ ...p, filter }));
       setPages(next);
       setResult(null);
+    } catch {
+      toast({ variant: "destructive", title: "Could not apply this look", description: "Your pages are unchanged. Try editing one page at a time." });
     } finally {
       setProcessing(false);
     }
@@ -471,7 +552,7 @@ const ScanDocument = () => {
   };
 
   const reset = () => {
-    pages.forEach((p) => p.resultUrl && URL.revokeObjectURL(p.resultUrl));
+    setEditing(null);
     setPages([]);
     setResult(null);
     setName(defaultScanName());
@@ -482,7 +563,7 @@ const ScanDocument = () => {
     <input
       ref={importRef}
       type="file"
-      accept="image/*"
+      accept={IMAGE_ACCEPT}
       multiple
       className="hidden"
       onChange={(e) => {
@@ -501,7 +582,7 @@ const ScanDocument = () => {
           cv={cv}
           count={pages.length}
           lastThumb={pages[pages.length - 1]?.resultUrl}
-          onCapture={(c, q) => startEdit(c, q, true)}
+          onCapture={async (c, q) => { try { await startEdit(c, q, true); } catch { setImportError("Could not capture this page. Try again or choose a photo."); setStep("pages"); } }}
           onImport={() => importRef.current?.click()}
           onClose={() => setStep("pages")}
         />
@@ -519,23 +600,34 @@ const ScanDocument = () => {
           description="Scan letters, receipts and forms with your phone camera. Pages are straightened and cleaned up automatically, then saved as one PDF you can keep or share."
         />
 
+        <p role="status" className="mb-4 max-w-3xl text-sm text-muted-foreground">{draftStatus}</p>
+        {pendingDraft && <div className="mb-5 max-w-3xl rounded-xl border border-border bg-card p-4">
+          <p className="font-semibold">Continue your previous scan?</p>
+          <p className="mt-1 text-sm text-muted-foreground">{pendingDraft.pages.length} saved pages{pendingDraft.editing ? " and a page being edited" : ""}. This draft is stored only in this browser.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={restoreDraft} className="min-h-11 rounded-md bg-brand px-4 font-semibold text-white">Restore scan</button>
+            <button type="button" onClick={() => { setPendingDraft(null); setDraftReady(true); }} className="min-h-11 rounded-md border border-border px-4">Discard saved draft</button>
+          </div>
+        </div>}
+        {importError && <p role="alert" className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{importError}</p>}
         {engineError && (
-          <div className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{engineError}</div>
+          <div role="alert" className="mb-4 max-w-3xl rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{engineError}<button type="button" onClick={() => { setEngineError(null); loadOpenCv().then(setCv).catch(e => setEngineError(e.message)); }} className="ml-3 min-h-11 font-semibold underline">Retry scanner</button></div>
         )}
 
         {step === "adjust" && editing && cv ? (
           <div className="max-w-3xl">
             <CornerEditor
+              busy={processing}
               cv={cv}
               page={editing.page}
               saveLabel={editing.isNew ? (editing.fromCamera ? "Keep and scan next" : "Add page") : "Save changes"}
               onSave={saveEdit}
               onCancel={() => { setStep(editing.isNew && editing.fromCamera ? "camera" : "pages"); setEditing(null); }}
             />
-            {processing && <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Straightening and cleaning up…</p>}
+            {processing && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Straightening and cleaning up…</p>}
           </div>
         ) : (
-          <div className="max-w-5xl space-y-4">
+          <fieldset disabled={Boolean(building) || processing || !draftReady} className="min-w-0 max-w-5xl space-y-4">
             {pages.length === 0 ? (
               <div className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
                 <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-tint text-brand"><ScanLine size={28} /></span>
@@ -555,7 +647,7 @@ const ScanDocument = () => {
                     <ImagePlus size={18} /> Choose photos
                   </button>
                 </div>
-                {processing && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Processing photos…</p>}
+                {processing && <p role="status" className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> {importStatus || "Processing photos…"}</p>}
                 {!hasCamera && <p className="mt-4 text-xs text-muted-foreground">Live camera needs the secure (https) address on a phone or a computer with a camera. You can still use photos.</p>}
               </div>
             ) : (
@@ -565,11 +657,11 @@ const ScanDocument = () => {
                     <h2 className="text-sm font-semibold text-foreground">{pages.length} page{pages.length === 1 ? "" : "s"}</h2>
                     <div className="flex flex-wrap gap-2">
                       {hasCamera && (
-                        <button type="button" onClick={() => setStep("camera")} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
+                        <button type="button" onClick={() => setStep("camera")} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
                           <Camera size={15} /> Scan more
                         </button>
                       )}
-                      <button type="button" onClick={() => importRef.current?.click()} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
+                      <button type="button" onClick={() => importRef.current?.click()} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium hover:border-brand hover:text-brand">
                         <ImagePlus size={15} /> Add photos
                       </button>
                     </div>
@@ -582,13 +674,13 @@ const ScanDocument = () => {
                           {p.resultUrl && <img src={p.resultUrl} alt={`Page ${i + 1}`} className="max-h-full max-w-full shadow-sm" />}
                         </div>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => movePage(i, -1)} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowLeft size={15} /></button>
+                          <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => movePage(i, -1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowLeft size={15} /></button>
                           <span className="text-xs font-semibold tabular-nums text-muted-foreground">{i + 1}</span>
-                          <button type="button" aria-label="Move later" disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowRight size={15} /></button>
+                          <button type="button" aria-label="Move later" disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowRight size={15} /></button>
                         </div>
                         <div className="flex items-center justify-center gap-1">
-                          <button type="button" aria-label={`Edit page ${i + 1}`} onClick={() => { setEditing({ page: p, isNew: false, fromCamera: false }); setStep("adjust"); }} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-brand"><Pencil size={15} /></button>
-                          <button type="button" aria-label={`Delete page ${i + 1}`} onClick={() => { setPages((all) => all.filter((x) => x.id !== p.id)); setResult(null); }} className="grid h-8 w-8 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"><Trash2 size={15} /></button>
+                          <button type="button" aria-label={`Edit page ${i + 1}`} onClick={() => { setEditing({ page: p, isNew: false, fromCamera: false }); setStep("adjust"); }} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-brand"><Pencil size={15} /></button>
+                          <button type="button" aria-label={`Delete page ${i + 1}`} onClick={() => { setPages((all) => all.filter((x) => x.id !== p.id)); setResult(null); }} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-destructive"><Trash2 size={15} /></button>
                         </div>
                       </li>
                     ))}
@@ -598,7 +690,7 @@ const ScanDocument = () => {
                     <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Look for all pages</span>
                     {FILTERS.map((f) => (
                       <button key={f.id} type="button" disabled={processing} onClick={() => setAllFilters(f.id)}
-                        className={`h-8 rounded-full border px-3 text-xs font-medium ${pages.every((p) => p.filter === f.id) ? "border-brand bg-brand text-white" : "border-border hover:border-brand"}`}>
+                        className={`min-h-11 rounded-full border px-3 text-xs font-medium ${pages.every((p) => p.filter === f.id) ? "border-brand bg-brand text-white" : "border-border hover:border-brand"}`}>
                         {f.label}
                       </button>
                     ))}
@@ -618,7 +710,7 @@ const ScanDocument = () => {
                       <div className="mt-1.5 flex gap-1 rounded-md border border-border p-1">
                         {PAGE_SIZES.map((s) => (
                           <button key={s.id} type="button" onClick={() => { setPageSize(s.id); setResult(null); }} aria-pressed={pageSize === s.id}
-                            className={`h-9 rounded px-3 text-sm ${pageSize === s.id ? "bg-brand text-white" : "text-foreground hover:bg-muted"}`}>
+                            className={`min-h-11 rounded px-3 text-sm ${pageSize === s.id ? "bg-brand text-white" : "text-foreground hover:bg-muted"}`}>
                             {s.label}
                           </button>
                         ))}
@@ -627,19 +719,19 @@ const ScanDocument = () => {
                   </div>
                   <label htmlFor="searchable" className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
                     <Checkbox id="searchable" className="mt-0.5" checked={searchable} onCheckedChange={(c) => { setSearchable(c === true); setResult(null); }} />
-                    <span><span className="text-foreground">Make text searchable</span><span className="block text-xs text-muted-foreground">Reads the text so you can search and copy it later. Adds a few seconds per page.</span></span>
+                    <span><span className="text-foreground">Make text searchable</span><span className="block text-xs text-muted-foreground">Reads the text so you can search and copy it later. Takes longer on older phones and large scans.</span></span>
                   </label>
 
                   {building && (
                     <div className="mt-4">
-                      <div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{building.stage}…</span><span className="tabular-nums">{building.done} / {building.total}</span></div>
+                      <div role="status" className="mb-1 flex justify-between text-xs text-muted-foreground"><span>{building.stage}…</span><span className="tabular-nums">{building.done} / {building.total}</span></div>
                       <Progress value={(building.done / Math.max(1, building.total)) * 100} className="h-1.5" />
                     </div>
                   )}
 
                   {result ? (
                     <div className="mt-4 rounded-lg border border-brand/40 bg-brand-tint p-4">
-                      <p className="flex items-center gap-2 text-sm font-semibold text-foreground"><FileCheck2 size={17} className="text-brand" /> {result.name} is ready</p>
+                      <p role="status" className="flex items-center gap-2 text-sm font-semibold text-foreground"><FileCheck2 size={17} className="text-brand" /> {result.name} is ready</p>
                       <SaveShareButtons file={result} className="mt-3" />
                     </div>
                   ) : (
@@ -650,11 +742,11 @@ const ScanDocument = () => {
                       </button>
                     </div>
                   )}
-                  <button type="button" onClick={reset} className="mt-3 text-sm font-medium text-muted-foreground hover:text-destructive">Start a new scan</button>
+                  <button type="button" onClick={reset} className="mt-3 text-sm font-medium text-muted-foreground hover:text-destructive">Clear draft and start a new scan</button>
                 </div>
               </>
             )}
-          </div>
+          </fieldset>
         )}
       </div>
     </section>

@@ -1,4 +1,3 @@
-import { renderPdfThumbnail } from "./pdfjs";
 
 /**
  * Generates a preview URL for a file
@@ -6,6 +5,7 @@ import { renderPdfThumbnail } from "./pdfjs";
 export const generateFilePreview = async (file: File): Promise<string> => {
   const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
   if (isPdf) {
+    const { renderPdfThumbnail } = await import("./pdfjs");
     return renderPdfThumbnail(file, 1.15);
   }
 

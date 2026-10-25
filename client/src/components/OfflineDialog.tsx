@@ -26,7 +26,7 @@ const OfflineDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     try {
       setStatus(await downloadAllEngines((loaded, total, current) => setProgress({ loaded, total, current })));
     } catch {
-      setError("The download stopped. Check your connection and press Download again; finished parts are kept.");
+      setError("The download stopped. Check your connection and try again; finished parts are kept.");
       engineStatus().then(setStatus);
     } finally {
       setBusy(false);
@@ -41,10 +41,10 @@ const OfflineDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             <WifiOff size={18} />
           </span>
           <div>
-            <DialogTitle className="text-lg">Use tools without internet</DialogTitle>
+            <DialogTitle className="text-lg">Set up offline access</DialogTitle>
             <DialogDescription className="mt-1">
-              Most tools already work offline. These four need an extra engine, which normally downloads the first time you open the tool.
-              Download them now, on good Wi-Fi, so they're ready when you have no connection.
+              This is optional. Save the larger scanning, text recognition and conversion components now so they're ready without internet.
+              Otherwise, they load automatically when you first use those tools. These tools process your documents on this device.
             </DialogDescription>
           </div>
         </div>
@@ -99,7 +99,7 @@ const OfflineDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <CloudDownload size={15} />}
-              {busy ? "Downloading" : "Download"}
+              {busy ? "Saving components…" : "Save for offline use"}
             </button>
           )}
         </div>

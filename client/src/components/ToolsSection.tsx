@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import {
   ArrowRight, Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, Server, type LucideIcon,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, Server, FilePenLine, ListChecks, QrCode, Image, type LucideIcon,
 } from "lucide-react";
 import { features } from "@/brand";
 
@@ -17,6 +17,10 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
+  { id: "pdf-properties", title: "PDF properties", description: "View, edit or clear the title, author and other document properties.", link: "/pdf-properties", icon: FilePenLine, group: "official", isNew: true },
+  { id: "pdf-forms", title: "PDF forms", description: "Fill interactive form fields and export their values.", link: "/pdf-forms", icon: ListChecks, group: "official", isNew: true },
+  { id: "qr-codes", title: "QR codes", description: "Create a QR image or read a code from a picture on this device.", link: "/qr-codes", icon: QrCode, group: "official", isNew: true },
+  { id: "convert-images", title: "Convert images", description: "Convert HEIC, TIFF and other images to JPG, PNG or WebP.", link: "/convert-images", icon: Image, group: "convert", isNew: true },
   { id: "merge-pdfs", title: "Merge PDFs", description: "Combine several PDFs into one, in the order you choose.", link: "/merge-pdfs", icon: Combine, group: "organise" },
   { id: "split-pdf", title: "Split PDF", description: "Pull out pages or split a PDF into separate files.", link: "/split-pdf", icon: Scissors, group: "organise" },
   { id: "organize-pdf", title: "Organise pages", description: "Reorder, rotate, delete or copy pages, with a preview of every page.", link: "/organize-pdf", icon: LayoutGrid, group: "organise", isNew: true },

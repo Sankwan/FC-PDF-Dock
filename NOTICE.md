@@ -78,3 +78,18 @@ document detection approach as in [jscanify](https://github.com/puffinsoft/jscan
 The Forestry Commission name, logo and letterhead design belong to the
 Forestry Commission, Ghana. Their use needs FC approval (Corporate Affairs).
 They are not covered by this repository's MIT licence.
+
+
+## Local document add-ons
+
+| Component | Used for | Published licence |
+|---|---|---|
+| [node-qrcode](https://github.com/soldair/node-qrcode) | QR module generation | MIT |
+| [jsQR](https://github.com/cozmo/jsQR) | QR decoding | Apache-2.0 |
+| [UTIF.js](https://github.com/photopea/UTIF.js) | Local multipage TIFF decoding | MIT |
+| [heic2any](https://github.com/alexcorvi/heic2any) | Local HEIC/HEIF decoding (bundles a libheif decoder) | MIT for the wrapper |
+
+Copies of the packages' published licence notices are shipped at
+`client/public/licenses/addons.txt`. The HEIC bundle also contains upstream
+third-party code and its embedded copyright notices, retained in the published
+package. No decoder code is modified by PDFDock.
