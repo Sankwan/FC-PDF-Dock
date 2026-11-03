@@ -176,3 +176,11 @@
   to { transform: translateX(0); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .tool-page-enter { animation: none; } }
+
+/* Items that can be pressed and held to drag (see hooks/useSortable.ts):
+   no text selection or iOS image callout competing with the long press. */
+.sortable-item {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -152,3 +152,11 @@ export const optimizePdfStructure = async (bytes: Uint8Array): Promise<Uint8Arra
     "--compression-level=9",
     "--remove-unreferenced-resources=yes",
   ]);
+
+/**
+ * Rebuilds a damaged file's structure: qpdf reconstructs a broken or missing
+ * cross-reference table, recovers objects it can still parse and writes a
+ * clean, consistent file. Content is kept as it is.
+ */
+export const repairPdfStructure = async (bytes: Uint8Array): Promise<Uint8Array> =>
+  runQpdf(bytes, ["--object-streams=preserve"]);

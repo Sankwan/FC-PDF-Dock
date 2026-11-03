@@ -21,6 +21,30 @@ const detectStandalone = (): boolean =>
   // iOS Safari's own (non-standard) flag — not covered by the media query above.
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
+/** Chrome, Firefox, Edge etc. on iPhone can't add to the home screen on older iOS; Safari always can. */
+export const isIosNonSafari = () => /CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+
+// `beforeinstallprompt` fires once, often before React mounts, and its
+// prompt() can only be used once. Capture it here and share it with every
+// component that offers installing (header, banner, install guide).
+let deferred: BeforeInstallPromptEvent | null = null;
+let installed = typeof window !== "undefined" && detectStandalone();
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferred = e as BeforeInstallPromptEvent;
+    notify();
+  });
+  window.addEventListener("appinstalled", () => {
+    deferred = null;
+    installed = true;
+    notify();
+  });
+}
+
 /**
  * Wraps the PWA install flow: which platform the visitor is on (each needs
  * different instructions — iOS Safari has no programmatic install API at
@@ -29,42 +53,32 @@ const detectStandalone = (): boolean =>
  * installed.
  */
 export const useInstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isStandalone, setIsStandalone] = useState(detectStandalone);
+  const [, rerender] = useState(0);
   const [platform] = useState<Platform>(detectPlatform);
 
   useEffect(() => {
-    const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setDeferredPrompt(null);
-      setIsStandalone(true);
-    };
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
+    const l = () => rerender((n) => n + 1);
+    listeners.add(l);
+    return () => { listeners.delete(l); };
   }, []);
 
   const promptInstall = useCallback(async () => {
-    if (!deferredPrompt) return false;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    const event = deferred;
+    if (!event) return false;
+    deferred = null;
+    notify();
+    await event.prompt();
+    const { outcome } = await event.userChoice;
     return outcome === "accepted";
-  }, [deferredPrompt]);
+  }, []);
 
   return {
     platform,
-    isStandalone,
+    isStandalone: installed,
     /** True only when the browser can show its own native install prompt
      *  (Chrome/Edge on desktop or Android). Everywhere else — including
      *  every browser on iOS — falls back to manual instructions. */
-    canPromptDirectly: deferredPrompt !== null,
+    canPromptDirectly: deferred !== null,
     promptInstall,
   };
 };

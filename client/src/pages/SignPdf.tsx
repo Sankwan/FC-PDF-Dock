@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import RectangleControls, { fitRectangle } from "@/components/RectangleControls";
+import { fitRectangle } from "@/components/RectangleControls";
 import { imageCanvas } from "@/lib/addons/images";
 import FileUpload from "@/components/FileUpload";
 import BackToTools from "@/components/BackToTools";
-import { FileText, Download, PenLine, Trash2, Plus, X, Undo2, Loader2 } from "lucide-react";
+import { FileText, Download, PenLine, Trash2, Plus, X, Undo2, Loader2, Eye, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -201,6 +201,7 @@ const SignPdf = () => {
   const [loadProgress, setLoadProgress] = useState({ done: 0, total: 0 });
   const [isSaving, setIsSaving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; mode: "move" | "resize"; offsetX: number; offsetY: number } | null>(null);
 
@@ -244,6 +245,7 @@ const SignPdf = () => {
     setPlacements([]);
     setSignature(null);
     setCurrentPage(1);
+    setPreviewing(false);
   };
 
   const addPlacement = useCallback(() => {
@@ -252,10 +254,15 @@ const SignPdf = () => {
     const box = pageRef.current?.getBoundingClientRect();
     const pageAspect = box ? box.width / box.height : 0.707;
     const heightRatio = (widthRatio / signature.aspect) * pageAspect;
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setPreviewing(false);
+    setActiveId(id);
+    // On a phone the page sits above the controls; bring it back into view.
+    pageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     setPlacements((prev) => [
       ...prev,
       {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id,
         pageNumber: currentPage,
         xRatio: 0.6,
         yRatio: 0.78,
@@ -372,24 +379,41 @@ const SignPdf = () => {
             <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl overflow-hidden shadow-sm">
               <div className="bg-chrome px-4 py-2 flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-white text-xs font-semibold uppercase tracking-widest truncate max-w-[55%]">{pdfFile.name}</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
-                    className="text-xs text-muted-foreground hover:text-white disabled:opacity-40"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    type="button"
+                    aria-label="Previous page"
+                    className="grid h-11 w-11 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                    onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); setActiveId(null); }}
                     disabled={currentPage === 1}
                   >
-                    Prev
+                    <ChevronLeft size={18} />
                   </button>
-                  <span className="text-xs text-white">{currentPage} / {pageImages.length}</span>
+                  <span className="text-xs text-white tabular-nums">{currentPage} / {pageImages.length}</span>
                   <button
-                    className="text-xs text-muted-foreground hover:text-white disabled:opacity-40"
-                    onClick={() => setCurrentPage((p) => Math.min(pageImages.length, p + 1))}
+                    type="button"
+                    aria-label="Next page"
+                    className="grid h-11 w-11 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                    onClick={() => { setCurrentPage((p) => Math.min(pageImages.length, p + 1)); setActiveId(null); }}
                     disabled={currentPage === pageImages.length}
                   >
-                    Next
+                    <ChevronRight size={18} />
                   </button>
                 </div>
               </div>
+              {placements.length > 0 && (
+                <div className={`flex items-center justify-between gap-2 border-b border-border px-3 py-2 text-sm ${previewing ? "bg-brand-tint" : "bg-card"}`}>
+                  <span className="text-muted-foreground">{previewing ? "Preview: this is how the signed page will look." : "Drag to move. Drag the corner dot to resize."}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewing((v) => !v); setActiveId(null); }}
+                    aria-pressed={previewing}
+                    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md border border-brand px-3 font-semibold text-brand hover:bg-brand-tint"
+                  >
+                    {previewing ? <><Pencil size={15} /> Edit</> : <><Eye size={15} /> Preview</>}
+                  </button>
+                </div>
+              )}
 
               <div className="p-3 sm:p-5 bg-muted">
                 <div
@@ -398,13 +422,16 @@ const SignPdf = () => {
                   onPointerMove={onPointerMovePage}
                   onPointerUp={endDrag}
                   onPointerLeave={endDrag}
+                  onPointerDown={() => setActiveId(null)}
                 >
                   <img src={pageImages[currentPage - 1]} alt={`Page ${currentPage}`} className="w-full h-auto block rounded-md" />
 
-                  {pagePlacements.map((p) => (
+                  {pagePlacements.map((p) => {
+                    const active = activeId === p.id && !previewing;
+                    return (
                     <div
                       key={p.id}
-                      className={`absolute rounded-md border ${activeId === p.id ? "border-brand" : "border-transparent hover:border-brand/50"}`}
+                      className={`absolute ${previewing ? "pointer-events-none" : `rounded-sm outline-dashed outline-1 ${active ? "outline-brand" : "outline-brand/40"}`}`}
                       style={{
                         left: `${p.xRatio * 100}%`,
                         top: `${p.yRatio * 100}%`,
@@ -413,12 +440,28 @@ const SignPdf = () => {
                         cursor: "move",
                         touchAction: "none",
                       }}
-                      tabIndex={0}
+                      tabIndex={previewing ? -1 : 0}
                       role="group"
-                      aria-label="Signature placement. Use arrow keys to move; use the placement fields to resize."
+                      aria-label="Signature. Arrow keys move it; plus and minus resize it; Delete removes it."
+                      onFocus={() => !previewing && setActiveId(p.id)}
                       onKeyDown={e => {
                         if (e.target !== e.currentTarget) return;
+                        if (e.key === "Delete" || e.key === "Backspace") {
+                          e.preventDefault();
+                          setPlacements(prev => prev.filter(x => x.id !== p.id));
+                          return;
+                        }
                         const step = e.shiftKey ? .05 : .01;
+                        if (e.key === "+" || e.key === "=" || e.key === "-") {
+                          e.preventDefault();
+                          const scale = e.key === "-" ? 1 - step * 5 : 1 + step * 5;
+                          setPlacements(prev => prev.map(item => {
+                            if (item.id !== p.id) return item;
+                            const w = Math.min(Math.max(item.widthRatio * scale, 0.05), 1 - item.xRatio);
+                            return { ...item, widthRatio: w, heightRatio: Math.min(item.heightRatio * (w / item.widthRatio), 1 - item.yRatio) };
+                          }));
+                          return;
+                        }
                         const delta: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
                         if (!delta[e.key]) return;
                         e.preventDefault();
@@ -432,22 +475,31 @@ const SignPdf = () => {
                       onPointerDown={(e) => onPointerDownBox(e, p.id, "move")}
                     >
                       <img src={p.dataUrl} alt="Signature" className="w-full h-full object-fill pointer-events-none" />
-                      <button
-                        type="button"
-                        onPointerDown={(e) => { e.stopPropagation(); }}
-                        onClick={() => setPlacements((prev) => prev.filter((x) => x.id !== p.id))}
-                        className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-chrome text-white flex items-center justify-center"
-                        aria-label="Remove signature"
-                      >
-                        <X size={11} />
-                      </button>
-                      <div
-                        onPointerDown={(e) => onPointerDownBox(e, p.id, "resize")}
-                        className="absolute -bottom-2 -right-2 w-11 h-11 rounded-md bg-brand border-2 border-white cursor-se-resize"
-                        style={{ touchAction: "none" }}
-                      />
+                      {active && (
+                        <>
+                          <button
+                            type="button"
+                            onPointerDown={(e) => { e.stopPropagation(); }}
+                            onClick={() => setPlacements((prev) => prev.filter((x) => x.id !== p.id))}
+                            className="absolute -right-5 -top-5 grid h-10 w-10 place-items-center"
+                            aria-label="Remove signature"
+                          >
+                            <span className="grid h-6 w-6 place-items-center rounded-full bg-chrome text-white shadow"><X size={13} /></span>
+                          </button>
+                          {/* Small visible dot, generous invisible touch area. */}
+                          <div
+                            onPointerDown={(e) => onPointerDownBox(e, p.id, "resize")}
+                            aria-hidden="true"
+                            className="absolute -bottom-5 -right-5 grid h-10 w-10 cursor-se-resize place-items-center"
+                            style={{ touchAction: "none" }}
+                          >
+                            <span className="h-4 w-4 rounded-full border-2 border-white bg-brand shadow" />
+                          </div>
+                        </>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -486,12 +538,9 @@ const SignPdf = () => {
                 </div>
               )}
 
-              {pagePlacements.map((p, i) => <RectangleControls key={p.id} label={`Signature ${i + 1} placement`}
-                value={{ x: p.xRatio, y: p.yRatio, w: p.widthRatio, h: p.heightRatio }}
-                onChange={rect => setPlacements(prev => prev.map(item => item.id === p.id ? { ...item, xRatio: rect.x, yRatio: rect.y, widthRatio: rect.w, heightRatio: rect.h } : item))} />)}
               <Alert className="bg-card/80 border border-border rounded-xl">
                 <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-                  Drag the signature to move it, or use the placement fields. You can also focus the signature and move it with arrow keys. Nothing is uploaded.
+                  Tap a signature to select it, drag to move it and drag the corner dot to resize. Use Preview to check the page before you download. With a keyboard, focus the signature and use the arrow keys, plus and minus. Nothing is uploaded.
                   The signed file records the date and time it was signed, so anyone can later check it with
                   "Check a signed PDF" and see if it was changed afterwards. This is a visible signature, not a
                   certificate-based digital signature.

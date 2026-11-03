@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import InstallBanner from "./InstallBanner";
 import { useAuth } from "@/context/Auth";
 
 interface LayoutProps {
@@ -16,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {isDemo && <div role="status" className="border-b border-border bg-brand-tint px-4 py-2 text-center text-sm text-foreground">Demo session · Use sample documents. Document tools process files on this device.</div>}
       <main id="main-content" tabIndex={-1} className="min-w-0 flex-grow">{children}</main>
       <Footer />
+      <InstallBanner />
     </div>
   );
 };

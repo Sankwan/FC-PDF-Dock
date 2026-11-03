@@ -22,6 +22,10 @@ const ProtectPdf = lazy(() => import("@/pages/ProtectPdf"));
 const SignPdf = lazy(() => import("@/pages/SignPdf"));
 const OcrPdf = lazy(() => import("@/pages/OcrPdf"));
 const WordToPdf = lazy(() => import("@/pages/WordToPdf"));
+const PowerpointToPdf = lazy(() => import("@/pages/PowerpointToPdf"));
+const ExcelToPdf = lazy(() => import("@/pages/ExcelToPdf"));
+const AddPageNumbers = lazy(() => import("@/pages/AddPageNumbers"));
+const RepairPdf = lazy(() => import("@/pages/RepairPdf"));
 const PdfToWord = lazy(() => import("@/pages/PdfToWord"));
 const OrganizePdf = lazy(() => import("@/pages/OrganizePdf"));
 
@@ -29,8 +33,6 @@ const OrganizePdf = lazy(() => import("@/pages/OrganizePdf"));
 const RedactPdf = lazy(() => import("@/pages/RedactPdf"));
 const ScanDocument = lazy(() => import("@/pages/ScanDocument"));
 const Letterhead = lazy(() => import("@/pages/Letterhead"));
-const PdfMetadata = lazy(() => import("@/pages/PdfMetadata"));
-const PdfForms = lazy(() => import("@/pages/PdfForms"));
 const QrTools = lazy(() => import("@/pages/QrTools"));
 const ImageConvert = lazy(() => import("@/pages/ImageConvert"));
 
@@ -64,13 +66,13 @@ function Tools() {
           <Route path="/split-pdf" component={SplitPdf} />
           <Route path="/organize-pdf" component={OrganizePdf} />
           <Route path="/compress-pdf" component={CompressPdf} />
+          <Route path="/page-numbers" component={AddPageNumbers} />
+          <Route path="/repair-pdf" component={RepairPdf} />
           <Route path="/pdf-to-image" component={PdfToImage} />
           <Route path="/image-to-pdf" component={ImageToPdf} />
           <Route path="/scan" component={ScanDocument} />
           <Route path="/watermark-pdf" component={WatermarkPdf} />
           <Route path="/letterhead" component={Letterhead} />
-          <Route path="/pdf-properties" component={PdfMetadata} />
-          <Route path="/pdf-forms" component={PdfForms} />
           <Route path="/qr-codes" component={QrTools} />
           <Route path="/convert-images" component={ImageConvert} />
           <Route path="/protect-pdf" component={ProtectPdf} />
@@ -78,6 +80,8 @@ function Tools() {
           <Route path="/sign-pdf" component={SignPdf} />
           <Route path="/ocr-pdf" component={OcrPdf} />
           <Route path="/word-to-pdf" component={WordToPdf} />
+          <Route path="/powerpoint-to-pdf" component={PowerpointToPdf} />
+          <Route path="/excel-to-pdf" component={ExcelToPdf} />
           <Route path="/pdf-to-word" component={PdfToWord} />
           <Route component={NotFound} />
         </Switch>

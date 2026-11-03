@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import {
   Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, FilePenLine, ListChecks, QrCode, Image, type LucideIcon,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, Hash, Wrench, Presentation, Sheet, type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Search, Clock3 } from "lucide-react";
@@ -19,19 +19,21 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
-  { id: "pdf-properties", title: "PDF properties", description: "View, edit or clear the title, author and other document properties.", link: "/pdf-properties", icon: FilePenLine, group: "official", isNew: true },
-  { id: "pdf-forms", title: "PDF forms", description: "Fill interactive form fields and export their values.", link: "/pdf-forms", icon: ListChecks, group: "official", isNew: true },
   { id: "qr-codes", title: "QR codes", description: "Create a QR image or read a code from a picture on this device.", link: "/qr-codes", icon: QrCode, group: "official", isNew: true },
   { id: "convert-images", title: "Convert images", description: "Convert HEIC, TIFF and other images to JPG, PNG or WebP.", link: "/convert-images", icon: Image, group: "convert", isNew: true },
   { id: "merge-pdfs", title: "Merge PDFs", description: "Combine several PDFs into one, in the order you choose.", link: "/merge-pdfs", icon: Combine, group: "organise" },
   { id: "split-pdf", title: "Split PDF", description: "Pull out pages or split a PDF into separate files.", link: "/split-pdf", icon: Scissors, group: "organise" },
   { id: "organize-pdf", title: "Organise pages", description: "Reorder, rotate, delete or copy pages, with a preview of every page.", link: "/organize-pdf", icon: LayoutGrid, group: "organise", isNew: true },
   { id: "compress-pdf", title: "Compress PDF", description: "Shrink PDFs for email and WhatsApp. Text stays sharp and searchable.", link: "/compress-pdf", icon: FileDown, group: "organise" },
+  { id: "page-numbers", title: "Add page numbers", description: "Number pages at the top or bottom, with an option to skip the cover.", link: "/page-numbers", icon: Hash, group: "organise", isNew: true },
+  { id: "repair-pdf", title: "Repair PDF", description: "Fix a PDF that won't open, shows errors or has blank pages.", link: "/repair-pdf", icon: Wrench, group: "organise", isNew: true },
 
   { id: "scan", title: "Scan document", description: "Use your phone camera to scan papers into a clean PDF, then save or share it.", link: "/scan", icon: ScanLine, group: "convert", isNew: true },
   { id: "image-to-pdf", title: "Image to PDF", description: "Turn photos and images into a PDF.", link: "/image-to-pdf", icon: ImagePlus, group: "convert" },
   { id: "pdf-to-image", title: "PDF to Image", description: "Save PDF pages as JPG, PNG or WebP images.", link: "/pdf-to-image", icon: Images, group: "convert" },
   { id: "word-to-pdf", title: "Word to PDF", description: "Convert .docx documents to PDF on this device.", link: "/word-to-pdf", icon: FileType2, group: "convert" },
+  { id: "powerpoint-to-pdf", title: "PowerPoint to PDF", description: "Convert .pptx slides to PDF on this device.", link: "/powerpoint-to-pdf", icon: Presentation, group: "convert", isNew: true },
+  { id: "excel-to-pdf", title: "Excel to PDF", description: "Convert .xlsx spreadsheets to PDF on this device.", link: "/excel-to-pdf", icon: Sheet, group: "convert", isNew: true },
   { id: "pdf-to-word", title: "PDF to Word", description: "Create editable text or page images in Word, on this device.", link: "/pdf-to-word", icon: FileText, group: "convert" },
   { id: "ocr-pdf", title: "OCR PDF", description: "Make scanned PDFs searchable so you can find and copy text.", link: "/ocr-pdf", icon: TextSearch, group: "convert" },
 

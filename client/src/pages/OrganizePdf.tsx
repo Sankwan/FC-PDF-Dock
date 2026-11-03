@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, Copy, FilePlus2, GripVertical, LayoutGrid, Loader2, RotateCcw, RotateCw, Trash2, Undo2, FileMinus, Square,
+  Copy, FilePlus2, GripVertical, LayoutGrid, Loader2, RotateCcw, RotateCw, Trash2, Undo2, FileMinus, Square,
 } from "lucide-react";
 import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
 import SaveShareButtons from "@/components/SaveShareButtons";
 import { ensureUnlocked } from "@/components/UnlockPdfDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSortable } from "@/hooks/useSortable";
 import { buildOrganizedPdf, newKey, readPages, type PageItem, type SourcePdf } from "@/lib/organize";
 
 const OrganizePdf = () => {
@@ -18,7 +19,6 @@ const OrganizePdf = () => {
   const [loading, setLoading] = useState(false);
   const [building, setBuilding] = useState(false);
   const [result, setResult] = useState<File | null>(null);
-  const [dragKey, setDragKey] = useState<string | null>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
   const baseName = sources[0]?.file.name.replace(/\.pdf$/i, "") ?? "document";
 
@@ -120,44 +120,22 @@ const OrganizePdf = () => {
       return [...prev.slice(0, i + 1), blank, ...prev.slice(i + 1)];
     });
 
-  const move = (from: number, to: number) =>
-    commit((prev) => {
-      if (to < 0 || to >= prev.length || from === to) return prev;
-      const next = [...prev];
-      const [item] = next.splice(from, 1);
-      next.splice(to, 0, item);
-      return next;
-    });
-
-  // Pointer-based dragging works the same with a mouse, a pen or a finger.
-  const dragFrom = useRef<number>(-1);
-  const onGripDown = (e: React.PointerEvent, index: number, key: string) => {
-    e.preventDefault();
-    dragFrom.current = index;
-    setDragKey(key);
-    setHistory((h) => [...h.slice(-30), pages]);
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  };
-  const onGripMove = (e: React.PointerEvent) => {
-    if (dragFrom.current < 0) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-page-index]") as HTMLElement | null;
-    if (!el) return;
-    const over = Number(el.dataset.pageIndex);
-    if (over !== dragFrom.current) {
+  // Live reordering while dragging; the whole drag is one Undo step.
+  const sortable = useSortable({
+    count: pages.length,
+    onStart: () => setHistory((h) => [...h.slice(-30), pages]),
+    onMove: (from, to) =>
       setPages((prev) => {
         const next = [...prev];
-        const [item] = next.splice(dragFrom.current, 1);
-        next.splice(over, 0, item);
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
         return next;
-      });
-      dragFrom.current = over;
-    }
-  };
-  const onGripUp = () => {
-    if (dragFrom.current >= 0) setResult(null);
-    dragFrom.current = -1;
-    setDragKey(null);
-  };
+      }),
+    onEnd: (moved) => {
+      if (moved) setResult(null);
+      else setHistory((h) => h.slice(0, -1));
+    },
+  });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -219,17 +197,9 @@ const OrganizePdf = () => {
                 <button type="button" className={toolbarBtn} disabled={!selected.size} onClick={() => rotate(-90)}><RotateCcw size={15} /> Left</button>
                 <button type="button" className={toolbarBtn} disabled={!selected.size} onClick={() => rotate(90)}><RotateCw size={15} /> Right</button>
                 <button type="button" className={toolbarBtn} disabled={!selected.size} onClick={() => remove()}><Trash2 size={15} /> Delete</button>
-                {selected.size === 1 && (() => {
-                  const key = Array.from(selected)[0];
-                  const i = pages.findIndex((p) => p.key === key);
-                  return (
-                    <>
-                      <button type="button" className={toolbarBtn} disabled={i <= 0} onClick={() => move(i, i - 1)}><ArrowLeft size={15} /> Earlier</button>
-                      <button type="button" className={toolbarBtn} disabled={i >= pages.length - 1} onClick={() => move(i, i + 1)}><ArrowRight size={15} /> Later</button>
-                      <button type="button" className={toolbarBtn} onClick={() => insertBlank(key)}><FilePlus2 size={15} /> Blank page after</button>
-                    </>
-                  );
-                })()}
+                {selected.size === 1 && (
+                  <button type="button" className={toolbarBtn} onClick={() => insertBlank(Array.from(selected)[0])}><FilePlus2 size={15} /> Blank page after</button>
+                )}
                 <button type="button" className={toolbarBtn} disabled={!history.length} onClick={undo} title="Undo (Ctrl+Z)"><Undo2 size={15} /> Undo</button>
                 <button type="button" className={toolbarBtn} onClick={() => addInputRef.current?.click()}><FilePlus2 size={15} /> Add PDF</button>
                 <input ref={addInputRef} type="file" accept=".pdf,application/pdf" multiple className="hidden"
@@ -259,26 +229,29 @@ const OrganizePdf = () => {
               )}
             </div>
 
-            <p className="mb-3 text-xs text-muted-foreground">Drag a page by its handle to move it. Tap a page to select it. Ctrl+Z undoes.</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              <span className="sm:hidden">Press and hold a page, then drag it to move it. Tap a page to select it.</span>
+              <span className="hidden sm:inline">Drag a page to move it. Click a page to select it. Ctrl+Z undoes.</span>
+            </p>
 
-            <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" onPointerMove={onGripMove} onPointerUp={onGripUp} onPointerCancel={onGripUp}>
+            <ol ref={sortable.containerRef} className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {pages.map((p, i) => {
                 const isSel = selected.has(p.key);
                 const turned = (p.baseRotation + p.rotation) % 180 !== 0;
                 return (
                   <li
                     key={p.key}
-                    data-page-index={i}
-                    className={`group relative flex flex-col rounded-lg border bg-card p-2 transition-shadow ${
+                    {...sortable.itemProps(i)}
+                    className={`sortable-item group relative flex flex-col rounded-lg border bg-card p-2 transition-shadow ${
                       isSel ? "border-brand ring-2 ring-brand/30" : "border-border"
-                    } ${dragKey === p.key ? "opacity-60 shadow-lg" : ""}`}
+                    } ${sortable.dragIndex === i ? "z-10 scale-[1.03] opacity-80 shadow-xl ring-2 ring-brand" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <button
                         type="button"
                         aria-label={`Drag page ${i + 1}`}
-                        onPointerDown={(e) => onGripDown(e, i, p.key)}
-                        className="grid h-11 w-11 cursor-grab touch-none place-items-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+                        {...sortable.handleProps(i)}
+                        className="grid h-11 w-11 place-items-center rounded-md text-muted-foreground hover:bg-muted"
                       >
                         <GripVertical size={16} />
                       </button>

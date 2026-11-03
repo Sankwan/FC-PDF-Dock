@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
-import FilePreview from "@/components/FilePreview";
-import { Combine, Download, X, GripVertical } from "lucide-react";
+import { Combine, X, GripVertical, Plus, Trash2 } from "lucide-react";
+import SaveShareButtons from "@/components/SaveShareButtons";
+import { useSortable } from "@/hooks/useSortable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -10,8 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { downloadFile } from "@/lib/fileUtils";
+import { formatFileSize } from "@/lib/fileUtils";
 import { mergePdfFiles } from "@/lib/pdfUtils";
+
+// Stable list keys that survive reordering, even if the same file is added twice.
+const fileKeys = new WeakMap<File, string>();
+const keyFor = (file: File) => {
+  if (!fileKeys.has(file)) fileKeys.set(file, Math.random().toString(36).slice(2));
+  return fileKeys.get(file)!;
+};
 
 const MergePdf = () => {
   const { toast } = useToast();
@@ -47,18 +55,17 @@ const MergePdf = () => {
     input.click();
   }, []);
 
-  const handleRemovePdf = useCallback((index: number) => setPdfFiles(p => p.filter((_, i) => i !== index)), []);
+  const handleRemovePdf = useCallback((index: number) => { setPdfFiles(p => p.filter((_, i) => i !== index)); setMergedPdf(null); }, []);
 
-  const dragIndexRef = useRef<number | null>(null);
-  const handleReorderPdf = useCallback((from: number, to: number) => {
-    if (from === to) return;
-    setPdfFiles(prev => {
+  const sortable = useSortable({
+    count: pdfFiles.length,
+    onMove: (from, to) => setPdfFiles(prev => {
       const next = [...prev];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       return next;
-    });
-  }, []);
+    }),
+  });
 
   const handleClearPdfs = useCallback(() => {
     // Also drop these files from the shared workspace vault — otherwise a
@@ -122,18 +129,50 @@ const MergePdf = () => {
               />
             ) : (
               <>
-                <FilePreview
-                  files={pdfFiles} fileType="pdf" previewUrls={[]}
-                  onRemove={handleRemovePdf} onRemoveAll={handleClearPdfs}
-                  onAddMore={handleAddMorePdfs}
-                  className="mb-5"
-                />
-
                 {showOptions && !mergedPdf && !isMerging && (
-                  <div className="border border-border p-5 mb-5 bg-muted">
-                    <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Merge Options</h4>
-                    <div className="mb-4">
-                      <Label htmlFor="merge-filename" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Output Filename</Label>
+                  <div className="mb-5 space-y-4">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <h2 className="text-sm font-semibold text-foreground">{pdfFiles.length} PDF{pdfFiles.length === 1 ? "" : "s"} · merge order</h2>
+                        <button type="button" onClick={handleClearPdfs} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm text-muted-foreground hover:text-destructive">
+                          <Trash2 size={15} /> Clear all
+                        </button>
+                      </div>
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        <span className="sm:hidden">Press and hold a file, then drag it up or down.</span>
+                        <span className="hidden sm:inline">Drag files up or down to change the order.</span>
+                      </p>
+                      <ol ref={sortable.containerRef} className="space-y-2">
+                        {pdfFiles.map((file, i) => (
+                          <li
+                            key={keyFor(file)}
+                            {...sortable.itemProps(i)}
+                            className={`sortable-item flex items-center gap-2 rounded-lg border bg-card py-1 pl-1 pr-1 transition-shadow ${
+                              sortable.dragIndex === i ? "relative z-10 scale-[1.02] border-brand shadow-lg ring-2 ring-brand/30" : "border-border"
+                            }`}
+                          >
+                            <button type="button" aria-label={`Move ${file.name}. Use arrow keys to reorder.`} {...sortable.handleProps(i)}
+                              className="grid h-11 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+                              <GripVertical size={18} />
+                            </button>
+                            <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-brand text-[11px] font-bold text-white tabular-nums">{i + 1}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm text-foreground">{file.name}</span>
+                              <span className="block text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
+                            </span>
+                            <button type="button" data-no-drag onClick={() => handleRemovePdf(i)} aria-label={`Remove ${file.name}`}
+                              className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive">
+                              <X size={16} />
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                      <button type="button" onClick={handleAddMorePdfs} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-dark">
+                        <Plus size={16} /> Add more PDFs
+                      </button>
+                    </div>
+                    <div>
+                      <Label htmlFor="merge-filename" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Output filename</Label>
                       <Input
                         id="merge-filename"
                         value={mergedFilename.replace(/\.pdf$/, "")}
@@ -141,39 +180,6 @@ const MergePdf = () => {
                         placeholder="merged"
                         className="mt-1 border-border"
                       />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">File Order</Label>
-                      <div className="border border-border divide-y divide-[#E0E0E0]">
-                        {pdfFiles.map((file, i) => (
-                          <div
-                            key={`${file.name}-${i}`}
-                            draggable
-                            onDragStart={() => { dragIndexRef.current = i; }}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              if (dragIndexRef.current !== null) handleReorderPdf(dragIndexRef.current, i);
-                              dragIndexRef.current = null;
-                            }}
-                            className="flex items-center justify-between p-3 cursor-grab active:cursor-grabbing"
-                          >
-                            <div className="flex items-center gap-3">
-                              <GripVertical size={14} className="text-muted-foreground flex-shrink-0" />
-                              <div className="w-5 h-5 bg-brand text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                                {i + 1}
-                              </div>
-                              <span className="text-sm text-foreground truncate max-w-[220px]">{file.name}</span>
-                            </div>
-                            <button type="button" onClick={() => handleRemovePdf(i)} aria-label={`Remove ${file.name}`} className="text-muted-foreground hover:text-brand transition-colors">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={handleAddMorePdfs} className="mt-2 text-sm text-brand hover:text-brand-dark font-medium transition-colors">
-                        + Add More PDFs
-                      </button>
                     </div>
                   </div>
                 )}
@@ -195,12 +201,13 @@ const MergePdf = () => {
                         <span><strong>Merged.</strong> {pdfFiles.length} files combined · {mergedSize}</span>
                       </AlertDescription>
                     </Alert>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => downloadFile(mergedPdf, mergedPdf.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                        <Download size={15} className="mr-2" /> Download Merged PDF
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <SaveShareButtons file={mergedPdf} />
+                      <Button variant="outline" onClick={() => setMergedPdf(null)} className="h-11 border-border text-foreground hover:bg-background rounded-md">
+                        Change order
                       </Button>
-                      <Button variant="outline" onClick={handleClearPdfs} className="border-border text-foreground hover:bg-background rounded-md">
-                        Merge More
+                      <Button variant="outline" onClick={handleClearPdfs} className="h-11 border-border text-foreground hover:bg-background rounded-md">
+                        Merge more
                       </Button>
                     </div>
                   </div>

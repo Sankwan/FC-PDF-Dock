@@ -19,15 +19,15 @@ kept for the account; the app does not record a tool-use history. The scanner st
 | | **Watermark**: CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY and other presets | device |
 | | **Sign PDF**: draw and place a signature; records the signing time, and **Check a signed PDF** shows whether (and when) it was changed afterwards | device |
 | | **Redact PDF**: finds Ghana Card, phone, email, SSNIT and account numbers and names, or draw boxes; removes them permanently and then verifies nothing is left | device |
-| | **PDF properties**: view, edit or clear title, author, dates, custom properties and document-level extended metadata | device |
-| | **PDF forms**: fill text, checkbox, radio, dropdown and list fields; export current values as JSON | device |
 | | **QR codes**: create PNG codes or read their text from an image | device |
 | | **Protect PDF**: password to open, and/or restrict printing, copying and editing | device |
 | Organise | Merge, Split, **Organise pages** (reorder, rotate, delete, duplicate, extract, blank pages) | device |
 | | **Compress PDF**: shrinks images only, so text stays selectable and searchable | device |
+| | **Add page numbers**: six positions, "1", "Page 1", "1 of 9" styles, skip a cover page | device |
+| | **Repair PDF**: rebuilds damaged files (qpdf, then pdf-lib); last resort keeps each readable page as an image | device |
 | Scan & convert | **Scan document**: phone camera scanner with edge detection, straightening, shadow removal, B&W; save or share (WhatsApp, email) | device |
 | | **Convert images**: HEIC/HEIF, multipage TIFF, BMP and browser-supported images to JPG/PNG/WebP; multiple outputs as ZIP | device |
-| | Image to PDF (including all TIFF/HEIC pages), PDF to Image, OCR PDF, Word to PDF | device |
+| | Image to PDF (including all TIFF/HEIC pages), PDF to Image, OCR PDF, Word, PowerPoint and Excel to PDF (.docx/.pptx/.xlsx) | device |
 | | PDF to Word | browser: editable text / page images, local English OCR |
 
 Locked PDFs are detected when added to any tool; the person is asked for the
@@ -272,15 +272,6 @@ MIT (see `LICENSE`). Third-party components and their licences are listed in
 The add-ons keep the existing FC interface and authentication gate. They do not
 introduce an upload API, document database, external AI calls or a server queue.
 
-- PDF properties edits document information and optionally removes the document's
-  extended metadata packet. Clearing properties also removes custom document
-  information and dates. Detached metadata objects are excluded from the saved
-  file. This is not document redaction: content, comments and attachments remain.
-- PDF forms supports AcroForm text, checkbox, radio, dropdown and list fields.
-  Read-only fields, buttons and signatures are preserved. XFA forms are refused.
-  Text requiring characters outside the default PDF appearance font is refused
-  with an explanation; use a PDF reader with the original fonts for those forms.
-  The JSON export uses field names/types/values, including current unsaved edits.
 - QR tools generate and read QR codes, not general 1D barcodes. Decoded links are
   displayed as text and are never opened automatically. Input text is limited to
   2,000 UTF-8 bytes; scan the actual printed code before circulation.
@@ -295,5 +286,3 @@ introduce an upload API, document database, external AI calls or a server queue.
   installed PWA cache. Neither requires a CDN. Install/update the app online
   before expecting new tools to work offline.
 
-Saving changes to PDF properties or forms can invalidate certificate signatures.
-These tools save a new file and leave the selected original unchanged.

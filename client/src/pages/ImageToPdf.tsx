@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Images, Loader2 } from "lucide-react";
+import { Images, Loader2 } from "lucide-react";
+import SaveShareButtons, { SAVE_HINT } from "@/components/SaveShareButtons";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
+import { generateFilePreview } from "@/lib/fileUtils";
 import { convertImagesToPdf, rotateImage } from "@/lib/imageUtils";
 import { IMAGE_ACCEPT, IMAGE_LIMITS, decodeImagePages } from "@/lib/addons/images";
 
@@ -229,14 +230,13 @@ const ImageToPdf = () => {
                         <span><strong>PDF created.</strong> {imageFiles.length} {imageFiles.length === 1 ? "page" : "pages"} · {pdfResult.size}</span>
                       </AlertDescription>
                     </Alert>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => downloadFile(pdfResult.file, pdfResult.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                        <Download size={15} className="mr-2" /> Download PDF
-                      </Button>
-                      <Button variant="outline" onClick={handleClearImages} className="border-border text-foreground hover:bg-background rounded-md">
-                        Create Another
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <SaveShareButtons file={pdfResult.file} />
+                      <Button variant="outline" onClick={handleClearImages} className="h-11 border-border text-foreground hover:bg-background rounded-md">
+                        Create another
                       </Button>
                     </div>
+                    <p className="mt-3 text-xs text-muted-foreground">{SAVE_HINT}</p>
                   </div>
                 )}
 

@@ -44,19 +44,26 @@ export const createFile = (
 /**
  * Downloads a file to the user's device
  */
+/**
+ * Saves a file the way the browser normally saves downloads: the Downloads
+ * folder on a computer, Files > Downloads on iPhone/iPad (Safari asks first),
+ * and the Downloads folder / Files app on Android. Nothing is uploaded.
+ */
 export const downloadFile = (content: Blob | string, fileName: string, type?: string): void => {
   const blob = content instanceof Blob ? content : new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  
+
   link.href = url;
   link.download = fileName;
+  link.rel = 'noopener';
   document.body.appendChild(link);
   link.click();
-  
-  // Cleanup
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+
+  // Safari (especially on iPhone) reads the file after click() returns;
+  // revoking straight away can leave an empty or failed download.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 };
 
 /**

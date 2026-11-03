@@ -62,14 +62,13 @@ const InstallGuide = ({ open, onOpenChange }: InstallGuideProps) => {
         {activeTab === "ios" && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              iOS only allows installing from <strong className="text-foreground">Safari</strong> — this
-              won't work from Chrome, Firefox, or any other browser on iPhone/iPad, even though they
-              can all open the site fine.
+              Use <strong className="text-foreground">Safari</strong>. On iOS 16.4 or later, Chrome and Edge
+              also work: their Share button is in the address bar.
             </p>
             <ol className="space-y-2.5 text-sm text-foreground">
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center">1</span>
-                <span className="flex items-center gap-1.5">Open this page in Safari, then tap the Share icon <Share size={14} className="inline text-brand" /> in the toolbar.</span>
+                <span className="flex items-center gap-1.5">Tap the Share icon <Share size={14} className="inline text-brand" /> in the toolbar.</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center">2</span>

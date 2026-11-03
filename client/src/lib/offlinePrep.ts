@@ -26,8 +26,8 @@ export interface Engine {
 export const ENGINES: Engine[] = [
   {
     id: "qpdf",
-    label: "Encryption engine",
-    usedBy: "Protect PDF, unlocking locked PDFs, Compress",
+    label: "Encryption and repair engine",
+    usedBy: "Protect PDF, Repair PDF, unlocking locked PDFs, Compress",
     urls: ["/qpdf/qpdf.wasm"],
     approxBytes: 1.3e6,
   },
@@ -52,8 +52,8 @@ export const ENGINES: Engine[] = [
   },
   {
     id: "word",
-    label: "Word to PDF engine",
-    usedBy: "Word to PDF, Letterhead",
+    label: "Office to PDF engine",
+    usedBy: "Word, PowerPoint and Excel to PDF, Letterhead",
     urls: [office2pdfWasmUrl],
     approxBytes: 49.3e6,
   },

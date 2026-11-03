@@ -85,27 +85,35 @@ const ensureInit = (onProgress?: (p: DocxConvertProgress) => void): Promise<Offi
   return modulePromise;
 };
 
+export type OfficeFormat = "docx" | "pptx" | "xlsx";
+
 /**
- * Converts a .docx file to PDF entirely in the browser — no upload, no
- * server. Powered by office2pdf (Rust/WASM, Apache-2.0): pdf-lib and PDF.js
- * (used elsewhere in this app) only read/write PDFs, so DOCX support needed
- * a real OOXML-to-PDF renderer, which is what office2pdf provides.
+ * Converts a Word, PowerPoint or Excel file to PDF entirely in the browser:
+ * no upload, no server. Powered by office2pdf (Rust/WASM, Apache-2.0): pdf-lib
+ * and PDF.js (used elsewhere in this app) only read/write PDFs, so Office
+ * support needed a real OOXML-to-PDF renderer, which is what office2pdf provides.
  */
-export const convertDocxToPdf = async (
-  docxFile: File,
+export const convertOfficeToPdf = async (
+  file: File,
+  format: OfficeFormat,
   onProgress?: (p: DocxConvertProgress) => void
 ): Promise<File> => {
   const office2pdf = await ensureInit(onProgress);
 
   onProgress?.({ phase: "converting", percent: -1, loadedBytes: 0, totalBytes: 0 });
-  const bytes = new Uint8Array(await docxFile.arrayBuffer());
-  const pdfBytes = office2pdf.convertDocxToPdf(bytes);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const pdfBytes = format === "pptx" ? office2pdf.convertPptxToPdf(bytes)
+    : format === "xlsx" ? office2pdf.convertXlsxToPdf(bytes)
+    : office2pdf.convertDocxToPdf(bytes);
 
   // Normalise to a fresh, non-shared ArrayBuffer — wasm-bindgen's returned
   // Uint8Array is typed as ArrayBufferLike, which File/Blob don't accept.
   const copy = new Uint8Array(pdfBytes.byteLength);
   copy.set(pdfBytes);
 
-  const outName = docxFile.name.replace(/\.docx$/i, "") + ".pdf";
+  const outName = file.name.replace(/\.[^.]+$/, "") + ".pdf";
   return new File([copy], outName, { type: "application/pdf" });
 };
+
+export const convertDocxToPdf = (docxFile: File, onProgress?: (p: DocxConvertProgress) => void) =>
+  convertOfficeToPdf(docxFile, "docx", onProgress);

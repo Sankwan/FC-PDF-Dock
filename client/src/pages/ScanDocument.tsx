@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, Camera, Check, Crop, FileCheck2, Flashlight, FlashlightOff, ImagePlus, Loader2, Maximize, Pencil,
-  RotateCw, ScanLine, Trash2, X, Wand2,
+  Camera, Check, Crop, FileCheck2, Flashlight, FlashlightOff, ImagePlus, Loader2, Maximize, Pencil,
+  GripVertical, RotateCw, ScanLine, Trash2, X, Wand2,
 } from "lucide-react";
 import ToolHeader from "@/components/ToolHeader";
 import SaveShareButtons from "@/components/SaveShareButtons";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/context/Auth";
 import { useToast } from "@/hooks/use-toast";
+import { useSortable } from "@/hooks/useSortable";
 import {
   FILTERS, applyFilter, canvasToBlob, detectDocument, fileToCanvas, fullQuad, loadOpenCv, rotateCanvas, warpDocument,
   type Quad, type ScanFilter,
@@ -196,9 +197,12 @@ const CameraView = ({
         >
           <span className="h-14 w-14 rounded-full bg-white" />
         </button>
-        <button type="button" onClick={onClose} className="relative justify-self-end h-12 w-12 overflow-hidden rounded-md border-2 border-white/70 bg-white/10" aria-label={`Done, ${count} page${count === 1 ? "" : "s"}`}>
-          {lastThumb ? <img src={lastThumb} alt="" className="h-full w-full object-cover" /> : <Check size={20} className="mx-auto" />}
-          {count > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-logo px-1 text-[11px] font-bold text-black">{count}</span>}
+        <button type="button" onClick={onClose} className="justify-self-end flex flex-col items-center gap-1" aria-label={`Done, ${count} page${count === 1 ? "" : "s"}`}>
+          <span className="relative block h-12 w-12 overflow-hidden rounded-md border-2 border-white/70 bg-white/10">
+            {lastThumb ? <img src={lastThumb} alt="" className="h-full w-full object-cover" /> : <Check size={20} className="mx-auto mt-3" />}
+            {count > 0 && <span className="absolute right-0.5 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-logo px-1 text-[11px] font-bold text-black">{count}</span>}
+          </span>
+          <span className="text-xs font-semibold text-white/90">Done</span>
         </button>
       </div>
     </div>
@@ -210,11 +214,13 @@ const CameraView = ({
 /* ------------------------------------------------------------------ */
 
 const CornerEditor = ({
-  cv, page, onSave, onCancel, saveLabel, busy,
+  cv, page, onSave, onFinish, onCancel, saveLabel, busy,
 }: {
   cv: any;
   page: ScanPage;
   onSave: (quad: Quad, filter: ScanFilter, rotation: number) => void;
+  /** When set, a primary "Done" button keeps this page and goes straight to the review. */
+  onFinish?: (quad: Quad, filter: ScanFilter, rotation: number) => void;
   onCancel: () => void;
   saveLabel: string;
   busy: boolean;
@@ -351,9 +357,20 @@ const CornerEditor = ({
 
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button type="button" onClick={onCancel} className="h-11 rounded-md border border-border px-5 text-sm font-semibold hover:bg-muted">Discard</button>
-        <button type="button" onClick={() => onSave(quad, filter, rotation)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-dark">
-          <Check size={16} /> {saveLabel}
-        </button>
+        {onFinish ? (
+          <>
+            <button type="button" onClick={() => onSave(quad, filter, rotation)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-brand px-5 text-sm font-semibold text-brand hover:bg-brand-tint">
+              <Camera size={16} /> {saveLabel}
+            </button>
+            <button type="button" onClick={() => onFinish(quad, filter, rotation)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-dark">
+              <Check size={16} /> Done
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={() => onSave(quad, filter, rotation)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-dark">
+            <Check size={16} /> {saveLabel}
+          </button>
+        )}
       </div>
     </fieldset>
   );
@@ -491,14 +508,14 @@ const ScanDocument = () => {
     } finally { setProcessing(false); setImportStatus(""); }
   };
 
-  const saveEdit = async (quad: Quad, filter: ScanFilter, rotation: number) => {
+  const saveEdit = async (quad: Quad, filter: ScanFilter, rotation: number, finish = false) => {
     if (!editing) return;
     setProcessing(true);
     try {
       const done = await render({ ...editing.page, quad, filter, rotation });
       setPages((prev) => (editing.isNew ? [...prev, done] : prev.map((p) => (p.id === done.id ? done : p))));
       setResult(null);
-      setStep(editing.isNew && editing.fromCamera ? "camera" : "pages");
+      setStep(editing.isNew && editing.fromCamera && !finish ? "camera" : "pages");
       setEditing(null);
     } catch (err) {
       console.error(err);
@@ -508,16 +525,16 @@ const ScanDocument = () => {
     }
   };
 
-  const movePage = (i: number, d: number) => {
-    setResult(null);
-    setPages((prev) => {
-      const j = i + d;
-      if (j < 0 || j >= prev.length) return prev;
+  const sortable = useSortable({
+    count: pages.length,
+    onMove: (from, to) => setPages((prev) => {
       const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
       return next;
-    });
-  };
+    }),
+    onEnd: (moved) => { if (moved) setResult(null); },
+  });
 
   const setAllFilters = async (filter: ScanFilter) => {
     setProcessing(true);
@@ -622,6 +639,7 @@ const ScanDocument = () => {
               page={editing.page}
               saveLabel={editing.isNew ? (editing.fromCamera ? "Keep and scan next" : "Add page") : "Save changes"}
               onSave={saveEdit}
+              onFinish={editing.isNew && editing.fromCamera ? (q, f, r) => saveEdit(q, f, r, true) : undefined}
               onCancel={() => { setStep(editing.isNew && editing.fromCamera ? "camera" : "pages"); setEditing(null); }}
             />
             {processing && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> Straightening and cleaning up…</p>}
@@ -667,16 +685,19 @@ const ScanDocument = () => {
                     </div>
                   </div>
 
-                  <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {pages.length > 1 && <p className="mb-2 text-xs text-muted-foreground"><span className="sm:hidden">Press and hold a page, then drag to reorder.</span><span className="hidden sm:inline">Drag pages to reorder them.</span></p>}
+                  <ol ref={sortable.containerRef} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {pages.map((p, i) => (
-                      <li key={p.id} className="rounded-lg border border-border bg-background p-2">
+                      <li key={p.id} {...sortable.itemProps(i)} className={`sortable-item rounded-lg border bg-background p-2 transition-shadow ${sortable.dragIndex === i ? "relative z-10 scale-[1.03] border-brand shadow-xl ring-2 ring-brand/30" : "border-border"}`}>
                         <div className="grid aspect-[3/4] place-items-center overflow-hidden rounded bg-muted">
-                          {p.resultUrl && <img src={p.resultUrl} alt={`Page ${i + 1}`} className="max-h-full max-w-full shadow-sm" />}
+                          {p.resultUrl && <img src={p.resultUrl} alt={`Page ${i + 1}`} draggable={false} className="max-h-full max-w-full shadow-sm" />}
                         </div>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <button type="button" aria-label="Move earlier" disabled={i === 0} onClick={() => movePage(i, -1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowLeft size={15} /></button>
+                          {pages.length > 1 ? (
+                            <button type="button" aria-label={`Move page ${i + 1}. Use arrow keys to reorder.`} {...sortable.handleProps(i)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted"><GripVertical size={16} /></button>
+                          ) : <span className="w-11" />}
                           <span className="text-xs font-semibold tabular-nums text-muted-foreground">{i + 1}</span>
-                          <button type="button" aria-label="Move later" disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30"><ArrowRight size={15} /></button>
+                          <span className="w-11" />
                         </div>
                         <div className="flex items-center justify-center gap-1">
                           <button type="button" aria-label={`Edit page ${i + 1}`} onClick={() => { setEditing({ page: p, isNew: false, fromCamera: false }); setStep("adjust"); }} className="grid h-11 w-11 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-brand"><Pencil size={15} /></button>

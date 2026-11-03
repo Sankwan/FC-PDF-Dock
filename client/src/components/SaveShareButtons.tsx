@@ -3,6 +3,10 @@ import { downloadFile } from "@/lib/fileUtils";
 import { canShareFiles, shareFile } from "@/lib/share";
 import { useToast } from "@/hooks/use-toast";
 
+/** Where "Save" puts the file on each kind of device. */
+export const SAVE_HINT =
+  "Save puts the file in your Downloads folder. On iPhone, open the Files app > Downloads (Safari may ask to confirm first). On Android, open Files or Downloads. Share sends it straight to WhatsApp, email or Drive.";
+
 /** "Save" plus, where the device supports it, "Share" through the system share sheet. */
 const SaveShareButtons = ({ file, saveLabel = "Save PDF", className = "" }: { file: File; saveLabel?: string; className?: string }) => {
   const { toast } = useToast();
