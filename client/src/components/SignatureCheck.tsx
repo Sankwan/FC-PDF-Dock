@@ -38,7 +38,7 @@ const SignatureCheck = () => {
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-foreground">Check a signed PDF</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">See when a PDF was signed here, and whether it was changed afterwards.</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">See whether a PDF signed here was changed afterwards.</p>
           <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => check(e.target.files?.[0])} />
           <button
             type="button"
@@ -69,7 +69,14 @@ const SignatureCheck = () => {
               <div className="min-w-0">
                 <p className="truncate font-semibold">{name}</p>
                 {result.status === "unchanged" && (
-                  <p className="mt-0.5">Signed {formatDateTime(result.signedAt)}. Not changed since.</p>
+                  <>
+                    <p className="mt-0.5">The pages match the record made when this was signed in PDFDock.</p>
+                    <p className="mt-0.5">
+                      {result.timeCovered
+                        ? `Signing time recorded in the file: ${formatDateTime(result.signedAt)}.`
+                        : `Signing time written in the file: ${formatDateTime(result.signedAt)}. This file is from an older version of PDFDock, so that time can't be checked.`}
+                    </p>
+                  </>
                 )}
                 {result.status === "changed" && (
                   <>
@@ -87,6 +94,12 @@ const SignatureCheck = () => {
                 )}
               </div>
             </div>
+          )}
+          {result && result.status !== "no-record" && (
+            <details className="mt-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-medium">What this check can and can't tell you</summary>
+              <p className="mt-1.5 leading-relaxed">It spots everyday changes made after signing, such as edited text, added or removed pages, or a changed signing time. It does not prove who signed, and someone determined to hide a change could rewrite the record. For legally binding signatures, use a certificate-based digital signature.</p>
+            </details>
           )}
         </div>
       </div>

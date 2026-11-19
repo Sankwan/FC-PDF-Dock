@@ -50,6 +50,8 @@ export interface CompressResult {
 
 export interface CompressOptions {
   level: CompressLevel;
+  /** Overrides the level's image settings (used when aiming for a size). */
+  settings?: { maxDpi: number; quality: number };
   removeMetadata?: boolean;
   onProgress?: (done: number, total: number, stage: string) => void;
 }
@@ -228,7 +230,7 @@ export const detectDigitalSignature = (doc: PDFDocument): boolean => {
 
 export const compressPdfKeepText = async (pdfFile: File, options: CompressOptions): Promise<CompressResult> => {
   const { level, removeMetadata = false, onProgress } = options;
-  const preset = COMPRESS_PRESETS[level];
+  const preset = options.settings ?? COMPRESS_PRESETS[level];
   const maxLongSide = Math.round(preset.maxDpi * A4_LONG_SIDE_INCHES);
 
   const originalBytes = pdfFile.size;
@@ -307,3 +309,39 @@ export const compressPdfKeepText = async (pdfFile: File, options: CompressOption
     hadDigitalSignature,
   };
 };
+
+/**
+ * Steps tried, gentlest first, when aiming for a file size. The first that
+ * fits wins, so photos keep as much quality as the limit allows.
+ */
+export const TARGET_LADDER = [
+  { maxDpi: 220, quality: 0.85 },
+  { maxDpi: 150, quality: 0.72 },
+  { maxDpi: 110, quality: 0.58 },
+  { maxDpi: 90, quality: 0.5 },
+  { maxDpi: 72, quality: 0.42 },
+  { maxDpi: 60, quality: 0.34 },
+];
+
+export interface TargetResult extends CompressResult {
+  target: number;
+  /** false when even the strongest text-keeping step was too big */
+  reached: boolean;
+}
+
+export async function compressToTarget(
+  pdfFile: File,
+  target: number,
+  options: { removeMetadata?: boolean; onProgress?: (done: number, total: number, stage: string) => void } = {},
+): Promise<TargetResult> {
+  let best: CompressResult | null = null;
+  for (let i = 0; i < TARGET_LADDER.length; i++) {
+    options.onProgress?.(i, TARGET_LADDER.length, i ? "Trying stronger settings" : "Compressing");
+    const r = await compressPdfKeepText(pdfFile, { level: "balanced", settings: TARGET_LADDER[i], removeMetadata: options.removeMetadata });
+    if (!best || r.outputBytes < best.outputBytes) best = r;
+    if (r.outputBytes <= target) return { ...r, target, reached: true };
+    // Without images there is nothing further to shrink.
+    if (r.imagesFound === 0 || (i > 0 && r.imagesRecompressed === 0)) break;
+  }
+  return { ...best!, target, reached: best!.outputBytes <= target };
+}

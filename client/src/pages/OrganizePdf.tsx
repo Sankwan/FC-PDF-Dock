@@ -9,6 +9,7 @@ import { ensureUnlocked } from "@/components/UnlockPdfDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useSortable } from "@/hooks/useSortable";
 import { buildOrganizedPdf, newKey, readPages, type PageItem, type SourcePdf } from "@/lib/organize";
+import { takeHandoff } from "@/lib/handoff";
 
 const OrganizePdf = () => {
   const { toast } = useToast();
@@ -21,6 +22,8 @@ const OrganizePdf = () => {
   const [result, setResult] = useState<File | null>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
   const baseName = sources[0]?.file.name.replace(/\.pdf$/i, "") ?? "document";
+  const [outputName, setOutputName] = useState<string | null>(null);
+  const [cameFrom, setCameFrom] = useState<string | null>(null);
 
   /** Applies a change to the latest page list and records it for Undo. */
   const commit = useCallback((change: (prev: PageItem[]) => PageItem[]) => {
@@ -70,7 +73,19 @@ const OrganizePdf = () => {
     }
   }, [toast]);
 
+  // Files passed from another tool (Merge → "Arrange pages first").
+  useEffect(() => {
+    const h = takeHandoff("/organize-pdf");
+    if (!h?.files.length) return;
+    setOutputName(h.outputName ?? null);
+    setCameFrom(h.from ?? null);
+    addFiles(h.files);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const reset = () => {
+    setOutputName(null);
+    setCameFrom(null);
     setSources([]);
     setPages([]);
     setHistory([]);
@@ -153,7 +168,7 @@ const OrganizePdf = () => {
     if (!chosen.length) return;
     setBuilding(true);
     try {
-      const name = onlySelected ? `${baseName}_pages.pdf` : `${baseName}_organised.pdf`;
+      const name = onlySelected ? `${baseName}_pages.pdf` : outputName ?? `${baseName}_organised.pdf`;
       setResult(await buildOrganizedPdf(sources, chosen, name));
     } catch (err) {
       console.error(err);
@@ -229,6 +244,9 @@ const OrganizePdf = () => {
               )}
             </div>
 
+            {cameFrom && sources.length > 1 && (
+              <p className="mb-2 text-sm text-foreground">All {sources.length} files from {cameFrom} are here in order, {pages.length} pages. Arrange them, then tap Create PDF to get one merged file.</p>
+            )}
             <p className="mb-3 text-xs text-muted-foreground">
               <span className="sm:hidden">Press and hold a page, then drag it to move it. Tap a page to select it.</span>
               <span className="hidden sm:inline">Drag a page to move it. Click a page to select it. Ctrl+Z undoes.</span>

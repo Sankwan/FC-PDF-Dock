@@ -1,248 +1,144 @@
-import { useState, useCallback } from "react";
-import BackToTools from "@/components/BackToTools";
+import { useState } from "react";
+import { Loader2, Stamp } from "lucide-react";
+import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
-import FilePreview from "@/components/FilePreview";
-import { Stamp, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import PagePreview from "@/components/PagePreview";
+import ToolResult, { StickyAction, chipBtn, primaryBtn, secondaryBtn } from "@/components/ToolResult";
 import { Slider } from "@/components/ui/slider";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
-import { addWatermark } from "@/lib/pdfUtils";
+import { formatFileSize } from "@/lib/fileUtils";
+import { useLivePreview } from "@/lib/livePreview";
+import {
+  applyWatermark, DEFAULT_WATERMARK, watermarkPdf, WATERMARK_COLOURS,
+  type WatermarkColour, type WatermarkOptions,
+} from "@/lib/watermark";
 
 const PRESETS = ["CONFIDENTIAL", "DRAFT", "FOR OFFICIAL USE ONLY", "CERTIFIED TRUE COPY", "COPY", "CANCELLED", "FORESTRY COMMISSION"];
 
 const WatermarkPdf = () => {
   const { toast } = useToast();
-  const { files: vaultFiles, removeFile: removeVaultFile } = useFileVault();
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [watermarkText, setWatermarkText] = useState("CONFIDENTIAL");
-  const [opacity, setOpacity] = useState(20);
-  const [fontSize, setFontSize] = useState(48);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [resultFile, setResultFile] = useState<File | null>(null);
+  const { files: vaultFiles, removeFile } = useFileVault();
+  const [file, setFile] = useState<File | null>(null);
+  const [opts, setOpts] = useState<WatermarkOptions>(DEFAULT_WATERMARK);
+  const [page, setPage] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ file: File; changedText: boolean } | null>(null);
 
-  const handlePdfSelected = useCallback(async (files: File[]) => {
-    if (files.length > 0 && files[0].type === "application/pdf") {
-      setPdfFile(files[0]);
-      setPdfPreviewUrl("");
-      setResultFile(null);
-      setIsLoadingPreview(true);
-      try {
-        const url = await generateFilePreview(files[0]);
-        setPdfPreviewUrl(url);
-      } catch {
-        // preview optional
-      } finally {
-        setIsLoadingPreview(false);
-      }
-    }
-  }, []);
+  const set = <K extends keyof WatermarkOptions>(key: K, value: WatermarkOptions[K]) => { setOpts((o) => ({ ...o, [key]: value })); setResult(null); };
+  const livePreview = useLivePreview(file, page, async (doc) => { await applyWatermark(doc, opts); }, [opts]);
 
-  const handleReset = useCallback(() => {
-    // Also drop this file from the shared workspace vault — otherwise a
-    // fresh FileUpload silently re-adopts the file we just finished with.
-    vaultFiles.filter(vf => vf.file === pdfFile).forEach(vf => removeVaultFile(vf.id));
-    setPdfFile(null);
-    setIsLoadingPreview(false);
-    setPdfPreviewUrl("");
-    setResultFile(null);
-    setProgress(0);
-  }, [pdfFile, vaultFiles, removeVaultFile]);
-
-  const handleProcess = useCallback(async () => {
-    if (!pdfFile || !watermarkText.trim()) return;
-    setIsProcessing(true);
-    setProgress(0);
-
+  const apply = async () => {
+    if (!file || !opts.text.trim()) return;
+    setBusy(true);
     try {
-      const interval = setInterval(() => {
-        setProgress(p => Math.min(p + 15, 85));
-      }, 150);
-
-      const result = await addWatermark(pdfFile, {
-        text: watermarkText,
-        opacity: opacity / 100,
-        fontSize,
-      });
-
-      clearInterval(interval);
-      setProgress(100);
-      setResultFile(result);
-      toast({ title: "Watermark added", description: "Your PDF has been watermarked successfully." });
+      setResult(await watermarkPdf(file, opts));
     } catch (err) {
       console.error(err);
-      toast({ variant: "destructive", title: "Failed", description: "Could not add watermark. Try a different PDF." });
+      toast({ variant: "destructive", title: "Couldn't add the watermark", description: "The file may be damaged. Try Repair PDF first." });
     } finally {
-      setIsProcessing(false);
+      setBusy(false);
     }
-  }, [pdfFile, watermarkText, opacity, fontSize, toast]);
+  };
 
-  const handleDownload = useCallback(() => {
-    if (resultFile) downloadFile(resultFile, resultFile.name, "application/pdf");
-  }, [resultFile]);
+  const reset = () => {
+    vaultFiles.filter((vf) => vf.file === file).forEach((vf) => removeFile(vf.id));
+    setFile(null); setResult(null); setPage(1);
+  };
+
+  const label = "mb-2 block text-sm font-semibold";
 
   return (
-    <section className="py-10 bg-background min-h-[60vh]">
+    <section className="min-h-[60vh] bg-background py-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <BackToTools />
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-4 h-0.5 bg-brand" />
-            <span className="text-brand text-xs font-semibold uppercase tracking-widest">Annotate</span>
+        <ToolHeader category="Official documents" title="Watermark PDF" description="Mark every page CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY or your own text. The preview shows exactly what you'll get." />
+
+        {!file ? (
+          <div className="max-w-2xl rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
+            <FileUpload accept=".pdf,application/pdf" maxSizeInMB={150} onFilesSelected={(f) => { setFile(f[0] ?? null); setResult(null); setPage(1); }}
+              title="Choose a PDF" description="Drag & drop or click to browse" buttonText="Select PDF" icon={<Stamp size={34} />} />
           </div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">Watermark PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Mark every page CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY or your own text</p>
-        </div>
+        ) : (
+          <div className="grid max-w-5xl items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
+            <div className="space-y-5 rounded-xl border border-border bg-card p-4 pb-0 shadow-sm sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{file.name}</span>
+                  <span className="text-xs text-muted-foreground">{livePreview.pageCount ? `${livePreview.pageCount} pages · ` : ""}{formatFileSize(file.size)}</span>
+                </span>
+                <button type="button" onClick={reset} className="min-h-11 shrink-0 text-sm text-muted-foreground hover:text-brand">Change file</button>
+              </div>
 
-        <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
-          <div className="p-6">
-            {!pdfFile ? (
-              <FileUpload
-                accept=".pdf,application/pdf"
-                maxSizeInMB={100}
-                multiple={false}
-                onFilesSelected={handlePdfSelected}
-                title="Choose a PDF"
-                description="Drag & drop or click to browse"
-                buttonText="Select PDF"
-                icon={<Stamp size={36} />}
-              />
-            ) : (
-              <>
-                <FilePreview
-                  files={[pdfFile]}
-                  fileType="pdf"
-                  previewUrls={pdfPreviewUrl ? [pdfPreviewUrl] : []}
-                  isLoadingPreview={isLoadingPreview}
-                  onRemoveAll={handleReset}
-                />
-
-                {!resultFile && !isProcessing && (
-                  <div className="border border-border p-5 mb-5 bg-muted">
-                    <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Watermark Options</h4>
-                    <div className="space-y-5">
-                      <div>
-                        <Label htmlFor="wm-text" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Watermark Text</Label>
-                        <Input
-                          id="wm-text"
-                          value={watermarkText}
-                          onChange={(e) => setWatermarkText(e.target.value)}
-                          placeholder="e.g. CONFIDENTIAL, DRAFT, SAMPLE"
-                          className="mt-1 border-border focus:border-brand focus:ring-0"
-                        />
-                        <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Common watermarks">
-                          {PRESETS.map((p) => (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => setWatermarkText(p)}
-                              aria-pressed={watermarkText === p}
-                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide transition-colors ${
-                                watermarkText === p ? "border-brand bg-brand text-white" : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Opacity</Label>
-                          <span className="text-xs text-muted-foreground font-mono">{opacity}%</span>
-                        </div>
-                        <Slider
-                          aria-label="Watermark opacity"
-                          min={5}
-                          max={60}
-                          step={1}
-                          value={[opacity]}
-                          onValueChange={(v) => setOpacity(v[0])}
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                          <span>Subtle (5%)</span>
-                          <span>Prominent (60%)</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Font Size</Label>
-                          <span className="text-xs text-muted-foreground font-mono">{fontSize}pt</span>
-                        </div>
-                        <Slider
-                          aria-label="Watermark font size"
-                          min={20}
-                          max={80}
-                          step={2}
-                          value={[fontSize]}
-                          onValueChange={(v) => setFontSize(v[0])}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {isProcessing && (
-                  <div className="mb-5">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span>Adding watermark...</span>
-                      <span>{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-1.5" />
-                  </div>
-                )}
-
-                {resultFile && (
-                  <Alert className="bg-background border border-foreground mb-5">
-                    <AlertDescription className="flex items-center gap-2 text-foreground text-sm">
-                      <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                      </svg>
-                      <span><strong>Done.</strong> Watermark "{watermarkText}" applied to all pages.</span>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  {!resultFile && !isProcessing && (
-                    <Button
-                      onClick={handleProcess}
-                      disabled={!watermarkText.trim()}
-                      className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
-                    >
-                      <Stamp size={15} className="mr-2" /> Add Watermark
-                    </Button>
-                  )}
-                  {resultFile && (
-                    <Button
-                      onClick={handleDownload}
-                      className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold"
-                    >
-                      <Download size={15} className="mr-2" /> Download PDF
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    className="border-border text-foreground hover:bg-background rounded-md"
-                  >
-                    {resultFile ? "Watermark Another" : "Reset"}
-                  </Button>
+              <div>
+                <label htmlFor="wm-text" className={label}>Text</label>
+                <input id="wm-text" value={opts.text} onChange={(e) => set("text", e.target.value)} maxLength={60} placeholder="e.g. CONFIDENTIAL"
+                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" />
+                <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Common watermarks">
+                  {PRESETS.map((p) => (
+                    <button key={p} type="button" onClick={() => set("text", p)} aria-pressed={opts.text === p}
+                      className={`min-h-9 rounded-full border px-3 text-[11px] font-semibold tracking-wide ${opts.text === p ? "border-brand bg-brand text-white" : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"}`}>
+                      {p}
+                    </button>
+                  ))}
                 </div>
-              </>
-            )}
+              </div>
+
+              <fieldset>
+                <legend className={label}>Layout</legend>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup">
+                  {([["centre", 45, "Diagonal"], ["centre", 0, "Straight"], ["tiled", 45, "Tiled diagonal"], ["tiled", 0, "Tiled straight"]] as const).map(([layout, angle, name]) => {
+                    const on = opts.layout === layout && opts.angle === angle;
+                    return (
+                      <button key={name} type="button" role="radio" aria-checked={on} className={chipBtn(on)}
+                        onClick={() => { setOpts((o) => ({ ...o, layout, angle })); setResult(null); }}>{name}</button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className={label}>Colour</legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup">
+                  {(Object.keys(WATERMARK_COLOURS) as WatermarkColour[]).map((c) => (
+                    <button key={c} type="button" role="radio" aria-checked={opts.colour === c} onClick={() => set("colour", c)}
+                      className={`${chipBtn(opts.colour === c)} inline-flex items-center gap-2`}>
+                      <span className="h-4 w-4 rounded-full border border-white/60" style={{ background: WATERMARK_COLOURS[c].css }} />
+                      {WATERMARK_COLOURS[c].label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <div className="mb-3 flex items-center justify-between"><span className="text-sm font-semibold">Strength</span><span className="text-xs tabular-nums text-muted-foreground">{Math.round(opts.opacity * 100)}%</span></div>
+                  <Slider aria-label="Watermark strength" min={5} max={60} step={1} value={[Math.round(opts.opacity * 100)]} onValueChange={(v) => set("opacity", v[0] / 100)} />
+                </div>
+                <div>
+                  <div className="mb-3 flex items-center justify-between"><span className="text-sm font-semibold">Text size</span><span className="text-xs tabular-nums text-muted-foreground">{opts.fontSize}pt</span></div>
+                  <Slider aria-label="Watermark text size" min={20} max={96} step={2} value={[opts.fontSize]} onValueChange={(v) => set("fontSize", v[0])} />
+                </div>
+              </div>
+
+              <StickyAction>
+                {result ? (
+                  <ToolResult files={[result.file]} detail={`Added to all ${livePreview.pageCount} pages. Text in the document is unchanged.`}
+                    actions={<><button type="button" className={secondaryBtn} onClick={() => setResult(null)}>Change settings</button><button type="button" className={secondaryBtn} onClick={reset}>Watermark another</button></>}>
+                    {result.changedText && <p className="text-xs text-amber-800 dark:text-amber-200">Some characters aren't in the PDF font and were replaced (for example ₵ became GH¢). Check the preview.</p>}
+                  </ToolResult>
+                ) : (
+                  <button type="button" onClick={apply} disabled={busy || !opts.text.trim()} className={primaryBtn}>
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : <Stamp size={16} />} Add watermark to {livePreview.pageCount || "all"} page{livePreview.pageCount === 1 ? "" : "s"}
+                  </button>
+                )}
+              </StickyAction>
+            </div>
+
+            <div className="order-first md:sticky md:top-24 md:order-none">
+              <PagePreview preview={livePreview.preview} busy={livePreview.busy} error={livePreview.error} page={page} pageCount={livePreview.pageCount} onPage={setPage} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

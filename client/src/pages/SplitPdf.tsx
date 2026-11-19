@@ -1,261 +1,234 @@
-import { useState, useCallback } from "react";
-import BackToTools from "@/components/BackToTools";
+import { useEffect, useMemo, useState } from "react";
+import { Check, FileText, Loader2, Scissors } from "lucide-react";
+import ToolHeader from "@/components/ToolHeader";
 import FileUpload from "@/components/FileUpload";
-import FilePreview from "@/components/FilePreview";
-import { Scissors, Download, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import ToolResult, { StickyAction, chipBtn, primaryBtn, secondaryBtn } from "@/components/ToolResult";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { generateFilePreview, downloadFile } from "@/lib/fileUtils";
-import { splitPdf } from "@/lib/pdfUtils";
+import { formatFileSize } from "@/lib/fileUtils";
+import { getPdfPageCount } from "@/lib/pdfUtils";
+import { newKey, readPages, type PageItem } from "@/lib/organize";
+import { parseRanges, planEvery, planFromGroups, runSplit, splitBySize, type SplitPart } from "@/lib/split";
+
+type Mode = "ranges" | "pick" | "every" | "size";
+const MODES: { id: Mode; label: string; hint: string }[] = [
+  { id: "pick", label: "Pick pages", hint: "Tap the pages you want" },
+  { id: "ranges", label: "Type ranges", hint: "e.g. 1-3, 7, 12-" },
+  { id: "every", label: "Every N pages", hint: "Equal chunks" },
+  { id: "size", label: "By file size", hint: "Each file under a limit" },
+];
+const SIZE_LIMITS = [{ label: "1 MB", mb: 1 }, { label: "2 MB", mb: 2 }, { label: "5 MB", mb: 5 }, { label: "10 MB", mb: 10 }, { label: "20 MB", mb: 20 }];
 
 const SplitPdf = () => {
   const { toast } = useToast();
-  const { files: vaultFiles, removeFile: removeVaultFile } = useFileVault();
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
-  const [splitMode, setSplitMode] = useState<"single" | "multiple">("multiple");
-  const [pageRange, setPageRange] = useState<"all" | "custom">("all");
-  const [customRange, setCustomRange] = useState<string>("");
-  const [isSplitting, setIsSplitting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [splitPdfs, setSplitPdfs] = useState<File[]>([]);
-  const [totalPages, setTotalPages] = useState<number>(0);
+  const { files: vaultFiles, removeFile } = useFileVault();
+  const [file, setFile] = useState<File | null>(null);
+  const [total, setTotal] = useState(0);
+  const [mode, setMode] = useState<Mode>("pick");
+  const [ranges, setRanges] = useState("");
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [combine, setCombine] = useState(true);
+  const [every, setEvery] = useState(1);
+  const [limitMb, setLimitMb] = useState(5);
+  const [thumbs, setThumbs] = useState<PageItem[]>([]);
+  const [busy, setBusy] = useState(0);
+  const [result, setResult] = useState<{ files: File[]; parts: SplitPart[]; oversized?: number[] } | null>(null);
+  const base = file?.name.replace(/\.pdf$/i, "") ?? "document";
 
-  const handlePdfSelected = useCallback(async (files: File[]) => {
-    if (files.length > 0 && files[0].type === "application/pdf") {
-      setPdfFile(files[0]);
-      setPdfPreviewUrl("");
-      setIsLoadingPreview(true);
-      try {
-        const url = await generateFilePreview(files[0]);
-        setPdfPreviewUrl(url);
-        setShowOptions(true);
-        setIsSplitting(false);
-        setProgress(0);
-        setSplitPdfs([]);
-        setTotalPages(Math.floor(Math.random() * 16) + 5);
-      } catch {
-        toast({ variant: "destructive", title: "Preview failed" });
-      } finally {
-        setIsLoadingPreview(false);
-      }
+  useEffect(() => {
+    if (!file) return;
+    let alive = true;
+    getPdfPageCount(file).then((n) => alive && setTotal(n)).catch(() => toast({ variant: "destructive", title: "Couldn't open this PDF", description: "Try Repair PDF first." }));
+    readPages({ id: newKey(), file }, (key, url) => alive && setThumbs((t) => t.map((p) => (p.key === key ? { ...p, thumb: url } : p))))
+      .then((items) => alive && setThumbs((prev) => (prev.length ? prev : items)))
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [file, toast]);
+
+  const { plan, error } = useMemo((): { plan: SplitPart[]; error?: string } => {
+    if (!total) return { plan: [] };
+    if (mode === "pick") {
+      const pages = [...picked].sort((a, b) => a - b);
+      if (!pages.length) return { plan: [], error: "Tap the pages you want to keep." };
+      return { plan: planFromGroups(combine ? [pages] : pages.map((p) => [p]), base, combine) };
     }
-  }, [toast]);
+    if (mode === "ranges") {
+      const r = parseRanges(ranges, total);
+      return r.error ? { plan: [], error: r.error } : { plan: planFromGroups(r.groups, base, combine) };
+    }
+    if (mode === "every") return { plan: planEvery(total, every, base) };
+    return { plan: [] };
+  }, [total, mode, picked, ranges, combine, every, base]);
 
-  const handleReset = useCallback(() => {
-    // Also drop this file from the shared workspace vault — otherwise a
-    // fresh FileUpload silently re-adopts the file we just finished with.
-    vaultFiles.filter(vf => vf.file === pdfFile).forEach(vf => removeVaultFile(vf.id));
-    setPdfFile(null);
-    setPdfPreviewUrl("");
-    setIsLoadingPreview(false);
-    setShowOptions(false);
-    setIsSplitting(false);
-    setProgress(0);
-    setSplitPdfs([]);
-    setPageRange("all");
-    setCustomRange("");
-    setSplitMode("multiple");
-  }, [pdfFile, vaultFiles, removeVaultFile]);
+  const change = () => setResult(null);
+  const togglePage = (n: number) => { setPicked((s) => { const next = new Set(s); next.has(n) ? next.delete(n) : next.add(n); return next; }); change(); };
 
-  const parsePageRange = useCallback((rangeStr: string, total: number): number[] => {
-    const pages: number[] = [];
-    for (const range of rangeStr.split(",")) {
-      const t = range.trim();
-      if (t.includes("-")) {
-        const [s, e] = t.split("-").map(n => parseInt(n.trim(), 10));
-        if (!isNaN(s) && !isNaN(e) && s <= e && s > 0 && e <= total) {
-          for (let i = s; i <= e; i++) { if (!pages.includes(i)) pages.push(i); }
-        }
+  const run = async () => {
+    if (!file) return;
+    setBusy(1);
+    try {
+      if (mode === "size") {
+        const r = await splitBySize(file, limitMb * 1024 * 1024, (d, t) => setBusy(Math.max(1, Math.round((d / t) * 100))));
+        setResult(r);
       } else {
-        const p = parseInt(t, 10);
-        if (!isNaN(p) && p > 0 && p <= total && !pages.includes(p)) pages.push(p);
+        const files = await runSplit(file, plan, (d, t) => setBusy(Math.max(1, Math.round((d / t) * 100))));
+        setResult({ files, parts: plan });
       }
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Couldn't split this PDF", description: "The file may be damaged. Try Repair PDF first." });
+    } finally {
+      setBusy(0);
     }
-    return pages.sort((a, b) => a - b);
-  }, []);
+  };
 
-  const handleSplitPdf = useCallback(async () => {
-    if (!pdfFile) return;
-    setIsSplitting(true);
-    setProgress(0);
-    try {
-      let pagesToExtract: number[] | "all" = "all";
-      if (pageRange === "custom" && customRange.trim()) {
-        const parsed = parsePageRange(customRange, totalPages);
-        if (parsed.length === 0) {
-          toast({ variant: "destructive", title: "Invalid range", description: `Pages must be between 1 and ${totalPages}.` });
-          setIsSplitting(false);
-          return;
-        }
-        pagesToExtract = parsed;
-      }
-      const interval = setInterval(() => setProgress(p => Math.min(p + Math.random() * 10, 90)), 200);
-      const files = await splitPdf(pdfFile, { pages: pagesToExtract, outputType: splitMode });
-      clearInterval(interval);
-      setProgress(100);
-      setSplitPdfs(files);
-      toast({ title: "Split complete", description: `Created ${files.length} PDF ${files.length === 1 ? "file" : "files"}.` });
-    } catch {
-      setIsSplitting(false);
-      toast({ variant: "destructive", title: "Split failed" });
-    }
-  }, [pdfFile, splitMode, pageRange, customRange, totalPages, parsePageRange, toast]);
+  const reset = () => {
+    vaultFiles.filter((vf) => vf.file === file).forEach((vf) => removeFile(vf.id));
+    setFile(null); setTotal(0); setThumbs([]); setPicked(new Set()); setRanges(""); setResult(null);
+  };
 
-  const handleDownloadAll = useCallback(async () => {
-    try {
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-      for (const f of splitPdfs) zip.file(f.name, await f.arrayBuffer());
-      const blob = await zip.generateAsync({ type: "blob" });
-      downloadFile(blob, `${pdfFile?.name?.replace(".pdf", "")}_split.zip`, "application/zip");
-      toast({ title: "Download started" });
-    } catch {
-      toast({ variant: "destructive", title: "Download failed" });
-    }
-  }, [splitPdfs, pdfFile, toast]);
+  const pagesOf = (f: File) => result?.parts[result.files.indexOf(f)]?.pages.length;
 
   return (
-    <section className="py-10 bg-background min-h-[60vh]">
+    <section className="min-h-[60vh] bg-background py-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <BackToTools />
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-4 h-0.5 bg-brand" />
-            <span className="text-brand text-xs font-semibold uppercase tracking-widest">Extract</span>
+        <ToolHeader category="Organise" title="Split PDF" description="Pull out the pages you need, cut a long PDF into parts, or make files small enough to email." />
+
+        {!file ? (
+          <div className="max-w-2xl rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
+            <FileUpload accept=".pdf,application/pdf" maxSizeInMB={200} onFilesSelected={(f) => { setFile(f[0] ?? null); setResult(null); }}
+              title="Choose a PDF" description="Drag & drop or click to browse" buttonText="Select PDF" icon={<Scissors size={34} />} />
           </div>
-          <h1 className="text-2xl font-bold text-foreground font-heading">Split PDF</h1>
-          <p className="text-muted-foreground text-sm mt-1">Extract pages or split a PDF into multiple files</p>
-        </div>
+        ) : (
+          <div className="max-w-3xl space-y-5 rounded-xl border border-border bg-card p-4 pb-0 shadow-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{file.name}</span>
+                <span className="text-xs text-muted-foreground">{total ? `${total} page${total === 1 ? "" : "s"} · ` : ""}{formatFileSize(file.size)}</span>
+              </span>
+              <button type="button" onClick={reset} className="min-h-11 shrink-0 text-sm text-muted-foreground hover:text-brand">Change file</button>
+            </div>
 
-        <div className="max-w-2xl bg-card/90 backdrop-blur-sm border border-border rounded-xl shadow-sm">
-          <div className="p-6">
-            {!pdfFile ? (
-              <FileUpload
-                accept=".pdf,application/pdf"
-                maxSizeInMB={100}
-                multiple={false}
-                onFilesSelected={handlePdfSelected}
-                title="Upload PDF to Split"
-                description="Drag & drop or click to browse"
-                buttonText="Select PDF"
-                icon={<Scissors size={36} />}
-              />
-            ) : (
+            {!result && (
               <>
-                <FilePreview files={[pdfFile]} fileType="pdf" previewUrls={pdfPreviewUrl ? [pdfPreviewUrl] : []} isLoadingPreview={isLoadingPreview} onRemoveAll={handleReset} className="mb-5" />
+                <div role="radiogroup" aria-label="How to split" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {MODES.map((m) => (
+                    <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} onClick={() => { setMode(m.id); change(); }}
+                      className={`rounded-lg border p-3 text-left ${mode === m.id ? "border-brand bg-brand-tint" : "border-border hover:border-brand/50"}`}>
+                      <span className="block text-sm font-semibold">{m.label}</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{m.hint}</span>
+                    </button>
+                  ))}
+                </div>
 
-                {showOptions && splitPdfs.length === 0 && !isSplitting && (
-                  <div className="border border-border p-5 mb-5 bg-muted">
-                    <h4 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wide">Split Options</h4>
-                    <div className="mb-4">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Output Type</Label>
-                      <RadioGroup value={splitMode} onValueChange={(v: "single" | "multiple") => setSplitMode(v)} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="multiple" id="split-multiple" />
-                          <Label htmlFor="split-multiple" className="text-sm cursor-pointer">One PDF per page</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="single" id="split-single" />
-                          <Label htmlFor="split-single" className="text-sm cursor-pointer">Extract pages into a single PDF</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Page Range</Label>
-                      <RadioGroup value={pageRange} onValueChange={(v) => setPageRange(v as "all" | "custom")} className="flex gap-4 mb-2">
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="all" id="all-pages" />
-                          <Label htmlFor="all-pages" className="text-sm cursor-pointer">All Pages ({totalPages})</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="custom" id="custom-range" />
-                          <Label htmlFor="custom-range" className="text-sm cursor-pointer">Custom</Label>
-                        </div>
-                      </RadioGroup>
-                      {pageRange === "custom" && (
-                        <div>
-                          <Input placeholder="e.g. 1-3, 5, 7-9" value={customRange} onChange={e => setCustomRange(e.target.value)} className="border-border" />
-                          <p className="text-xs text-muted-foreground mt-1">Comma-separated or range (e.g. 1-3, 5)</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {isSplitting && (
-                  <div className="mb-5">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1"><span>Splitting...</span><span>{Math.round(progress)}%</span></div>
-                    <Progress value={progress} className="h-1.5" />
-                  </div>
-                )}
-
-                {splitPdfs.length > 0 && (
+                {mode === "pick" && (
                   <div>
-                    <Alert className="bg-background border border-foreground mb-5">
-                      <AlertDescription className="flex items-center gap-2 text-foreground text-sm">
-                        <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span><strong>Done.</strong> {splitPdfs.length} {splitPdfs.length === 1 ? "file" : "files"} created.</span>
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="border border-border mb-5">
-                      <div className="bg-background px-4 py-2.5 border-b border-border flex justify-between items-center">
-                        <h4 className="text-sm font-medium text-foreground">Split Files ({splitPdfs.length})</h4>
-                        {splitPdfs.length > 1 && (
-                          <button onClick={handleDownloadAll} className="text-xs text-brand hover:text-brand-dark font-semibold flex items-center gap-1 transition-colors">
-                            <Download size={12} /> Download All (.zip)
-                          </button>
-                        )}
-                      </div>
-                      <div className="divide-y divide-[#E0E0E0]">
-                        {splitPdfs.map((file, i) => (
-                          <div key={`${file.name}-${i}`} className="flex items-center justify-between p-3">
-                            <div className="flex items-center gap-2">
-                              <FileText size={16} className="text-brand" />
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{file.name}</p>
-                                <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
-                              </div>
-                            </div>
-                            <button onClick={() => downloadFile(file, file.name, "application/pdf")} className="text-xs text-brand hover:text-brand-dark font-semibold flex items-center gap-1 transition-colors">
-                              <Download size={12} /> Download
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-muted-foreground tabular-nums">{picked.size} of {total} selected</span>
+                      <button type="button" className="min-h-9 px-2 font-medium text-brand" onClick={() => { setPicked(new Set(Array.from({ length: total }, (_, i) => i + 1))); change(); }}>All</button>
+                      <button type="button" className="min-h-9 px-2 font-medium text-brand" onClick={() => { setPicked(new Set()); change(); }}>None</button>
                     </div>
-
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
-                      Split Another PDF
-                    </Button>
+                    <ol className="grid max-h-[26rem] grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-border bg-muted p-2 sm:grid-cols-5 md:grid-cols-6">
+                      {Array.from({ length: total }, (_, i) => i + 1).map((n) => {
+                        const on = picked.has(n);
+                        const t = thumbs[n - 1];
+                        return (
+                          <li key={n}>
+                            <button type="button" onClick={() => togglePage(n)} aria-pressed={on} aria-label={`Page ${n}`}
+                              className={`relative flex w-full flex-col items-center rounded-md border-2 bg-card p-1 ${on ? "border-brand" : "border-transparent"}`}>
+                              <span className="grid aspect-[3/4] w-full place-items-center overflow-hidden">
+                                {t?.thumb ? <img src={t.thumb} alt="" className="max-h-full max-w-full shadow-sm" style={{ transform: `rotate(${t.baseRotation}deg)` }} /> : <FileText size={18} className="text-muted-foreground" />}
+                              </span>
+                              <span className="mt-1 text-xs tabular-nums">{n}</span>
+                              {on && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-brand text-white"><Check size={14} /></span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
                   </div>
                 )}
 
-                {showOptions && splitPdfs.length === 0 && !isSplitting && (
-                  <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                    <Button onClick={handleSplitPdf} disabled={!pdfFile} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                      Split PDF
-                    </Button>
-                    <Button variant="outline" onClick={handleReset} className="border-border text-foreground hover:bg-background rounded-md">
-                      Reset
-                    </Button>
+                {mode === "ranges" && (
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold">Pages</span>
+                    <input value={ranges} onChange={(e) => { setRanges(e.target.value); change(); }} placeholder="e.g. 1-3, 7, 12-" inputMode="numeric" autoComplete="off"
+                      aria-invalid={!!error && !!ranges} className={`h-11 w-full rounded-md border bg-card px-3 text-sm ${error && ranges ? "border-destructive" : "border-input"}`} />
+                    <span className={`mt-1 block text-xs ${error && ranges ? "text-destructive" : "text-muted-foreground"}`}>
+                      {error && ranges ? error : `Commas separate parts. "12-" means page 12 to the end (page ${total}).`}
+                    </span>
+                  </label>
+                )}
+
+                {(mode === "pick" || mode === "ranges") && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-semibold">Make</legend>
+                    <div className="flex flex-wrap gap-2" role="radiogroup">
+                      <button type="button" role="radio" aria-checked={combine} className={chipBtn(combine)} onClick={() => { setCombine(true); change(); }}>One PDF with these pages</button>
+                      <button type="button" role="radio" aria-checked={!combine} className={chipBtn(!combine)} onClick={() => { setCombine(false); change(); }}>{mode === "pick" ? "A PDF for each page" : "A PDF for each part"}</button>
+                    </div>
+                  </fieldset>
+                )}
+
+                {mode === "every" && (
+                  <label className="block max-w-xs">
+                    <span className="mb-1.5 block text-sm font-semibold">Pages in each file</span>
+                    <input type="number" min={1} max={total || 1} inputMode="numeric" value={every}
+                      onChange={(e) => { setEvery(Math.min(Math.max(1, Number(e.target.value) || 1), total || 1)); change(); }}
+                      className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm" />
+                  </label>
+                )}
+
+                {mode === "size" && (
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-semibold">Keep each file under</legend>
+                    <div className="flex flex-wrap gap-2" role="radiogroup">
+                      {SIZE_LIMITS.map((s) => <button key={s.mb} type="button" role="radio" aria-checked={limitMb === s.mb} className={chipBtn(limitMb === s.mb)} onClick={() => { setLimitMb(s.mb); change(); }}>{s.label}</button>)}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {file.size <= limitMb * 1024 * 1024
+                        ? `This file is already ${formatFileSize(file.size)}, under ${limitMb} MB. Splitting will make one file.`
+                        : `Pages stay in order. Expect about ${Math.ceil(file.size / (limitMb * 1024 * 1024))} files or a few more. If one page alone is bigger, it gets its own file; try Compress PDF on that one.`}
+                    </p>
+                  </fieldset>
+                )}
+
+                {plan.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-sm font-semibold">Will make {plan.length} file{plan.length === 1 ? "" : "s"}</p>
+                    <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-lg border border-border">
+                      {plan.slice(0, 200).map((p, i) => (
+                        <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                          <span className="min-w-0 truncate">{p.name}</span>
+                          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{p.pages.length} page{p.pages.length === 1 ? "" : "s"}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </>
             )}
+
+            <StickyAction>
+              {result ? (
+                <ToolResult files={result.files} zipName={`${base}_split.zip`} pages={pagesOf}
+                  detail={mode === "size" ? `Each file is under ${limitMb} MB${result.oversized?.length ? ", except as noted below" : ""}.` : "Pages are copied exactly; text and quality are unchanged."}
+                  actions={<><button type="button" className={secondaryBtn} onClick={() => setResult(null)}>Split differently</button><button type="button" className={secondaryBtn} onClick={reset}>Split another file</button></>}>
+                  {!!result.oversized?.length && (
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      Page{result.oversized.length === 1 ? "" : "s"} {result.oversized.join(", ")} {result.oversized.length === 1 ? "is" : "are"} bigger than {limitMb} MB on {result.oversized.length === 1 ? "its" : "their"} own, so {result.oversized.length === 1 ? "it's" : "each is"} in a separate file over the limit. Compress PDF can shrink {result.oversized.length === 1 ? "it" : "them"}.
+                    </p>
+                  )}
+                </ToolResult>
+              ) : (
+                <button type="button" onClick={run} disabled={!!busy || !total || (mode !== "size" && (!plan.length || !!error))} className={primaryBtn}>
+                  {busy ? <Loader2 size={16} className="animate-spin" /> : <Scissors size={16} />}
+                  {busy ? `Splitting… ${busy}%` : mode === "size" ? `Split into files under ${limitMb} MB` : plan.length === 1 ? "Make the PDF" : `Make ${plan.length || ""} PDFs`}
+                </button>
+              )}
+            </StickyAction>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

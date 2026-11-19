@@ -1,5 +1,6 @@
 import React from "react";
 import { X, RotateCw, Trash, Loader2 } from "lucide-react";
+import { formatFileSize } from "@/lib/fileUtils";
 
 interface FilePreviewProps {
   files: File[];
@@ -87,7 +88,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({
             </div>
           )}
           <div className="text-xs text-muted-foreground">
-            {(files[0].size / 1024 / 1024).toFixed(2)} MB
+            {formatFileSize(files[0].size)}
           </div>
         </div>
       </div>

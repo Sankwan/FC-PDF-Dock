@@ -33,7 +33,7 @@ const ResultSheet = ({ result, onClose, onDone }: Props) => (
           </div>
           <div className="space-y-2 px-5 pt-3 text-xs leading-relaxed text-muted-foreground">
             {result.signed && (
-              <p className="flex gap-2"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-brand" /><span>The signing time is recorded in the file. Anyone can use <Link href="/sign-pdf" className="underline">Check a signed PDF</Link> to see if it was changed afterwards.</span></p>
+              <p className="flex gap-2"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-brand" /><span>The signing time is recorded in the file. <Link href="/sign-pdf" className="underline">Check a signed PDF</Link> shows whether the pages or that time were changed afterwards. This is a visible signature, not a certificate-based digital signature.</span></p>
             )}
             {result.covered && (
               <p className="flex gap-2"><Info size={15} className="mt-0.5 shrink-0 text-amber-600" /><span>Text you changed is painted over, so the old words can still be copied out of the file. To remove sensitive text for good, use <Link href="/redact-pdf" className="underline">Redact PDF</Link>.</span></p>

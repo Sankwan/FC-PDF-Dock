@@ -5,6 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useFileVault, fileMatchesAccept } from "@/context/FileVault";
 import { formatFileSize } from "@/lib/fileUtils";
 import { ensureUnlocked } from "@/components/UnlockPdfDialog";
+import { useLocation } from "wouter";
+import { takeHandoff } from "@/lib/handoff";
 
 interface FileUploadProps {
   accept?: string;
@@ -51,6 +53,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
   // files re-imported the same vault entries) and silently pre-fill a
   // fresh tool page with a document from a different tool.
   const carried = vaultFiles.filter((f) => fileMatchesAccept(f.file, accept));
+
+  // A file sent here on purpose with a result's "Keep going" buttons is
+  // loaded straight away (unlike the carried-over chips above).
+  const [location] = useLocation();
+  useEffect(() => {
+    const h = takeHandoff(location, "next");
+    const ready = h?.files.filter((f) => fileMatchesAccept(f, accept)) ?? [];
+    if (!ready.length) return;
+    addFiles(ready);
+    onFilesSelected?.(multiple ? ready : ready.slice(0, 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (files.length === 0) return;

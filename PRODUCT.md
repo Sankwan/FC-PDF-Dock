@@ -31,7 +31,7 @@ An FC-specific document toolkit combining official branding and letterhead workf
 - Capability descriptions record implementation, not universal quality guarantees. Physical-phone scanner reliability and document-conversion fidelity require representative testing.
 - Process files on-device wherever practical. Clearly identify any server processing in the relevant workflow.
 - PDF-to-Word has a browser implementation with editable text/simple tables and page-image output, plus local English OCR for scans. Complex layouts and fonts may require correction. The optional legacy server converter remains in the repository but is not called by the frontend.
-- AI analysis and a shared document library are proposed features, not current capabilities. Inference location, model choice, storage, permissions and retention remain open decisions.
+- AI analysis and a shared document library are proposed features, not current capabilities. Inference location, model choice, storage, permissions and retention remain open decisions. The planned order is in docs/next-steps-ai.md.
 - The platform remains web/PWA in this product record. Separate native applications have not been approved as a product commitment.
 - The FC checkout and the original public v1 deployment are distinct. Do not describe local work as deployed without verification.
 

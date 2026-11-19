@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useLocation } from "wouter";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
-import { Combine, X, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Combine, X, GripVertical, Plus, Trash2, LayoutGrid } from "lucide-react";
 import SaveShareButtons from "@/components/SaveShareButtons";
 import { useSortable } from "@/hooks/useSortable";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,15 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
 import { formatFileSize } from "@/lib/fileUtils";
-import { mergePdfFiles } from "@/lib/pdfUtils";
+import { mergePdfFiles, getPdfPageCount } from "@/lib/pdfUtils";
+import { handOff } from "@/lib/handoff";
+
+// Page counts, read once per file.
+const pageCounts = new WeakMap<File, Promise<number | null>>();
+const countPages = (file: File) => {
+  if (!pageCounts.has(file)) pageCounts.set(file, getPdfPageCount(file).catch(() => null));
+  return pageCounts.get(file)!;
+};
 
 // Stable list keys that survive reordering, even if the same file is added twice.
 const fileKeys = new WeakMap<File, string>();
@@ -31,6 +40,21 @@ const MergePdf = () => {
   const [progress, setProgress] = useState(0);
   const [mergedPdf, setMergedPdf] = useState<File | null>(null);
   const [mergedSize, setMergedSize] = useState<string>("");
+  const [counts, setCounts] = useState<Map<File, number | null>>(new Map());
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    let alive = true;
+    pdfFiles.forEach((f) => countPages(f).then((n) => alive && setCounts((m) => (m.get(f) === n ? m : new Map(m).set(f, n)))));
+    return () => { alive = false; };
+  }, [pdfFiles]);
+  const totalPages = pdfFiles.reduce((sum, f) => sum + (counts.get(f) ?? 0), 0);
+  const countsReady = pdfFiles.every((f) => counts.has(f));
+
+  const arrangePages = () => {
+    handOff({ files: pdfFiles, outputName: mergedFilename.endsWith(".pdf") ? mergedFilename : `${mergedFilename}.pdf`, from: "Merge PDFs", to: "/organize-pdf" });
+    navigate("/organize-pdf");
+  };
 
   const handlePdfsSelected = useCallback(async (files: File[]) => {
     const pdfs = files.filter(f => f.type === "application/pdf");
@@ -90,7 +114,7 @@ const MergePdf = () => {
       const name = mergedFilename.endsWith(".pdf") ? mergedFilename : `${mergedFilename}.pdf`;
       const renamed = new File([merged], name, { type: "application/pdf" });
       setMergedPdf(renamed);
-      setMergedSize(`${(merged.size / 1024 / 1024).toFixed(2)} MB`);
+      setMergedSize(formatFileSize(merged.size));
       clearInterval(interval);
       setProgress(100);
       toast({ title: "Merged", description: `${pdfFiles.length} PDFs combined.` });
@@ -133,7 +157,7 @@ const MergePdf = () => {
                   <div className="mb-5 space-y-4">
                     <div>
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <h2 className="text-sm font-semibold text-foreground">{pdfFiles.length} PDF{pdfFiles.length === 1 ? "" : "s"} · merge order</h2>
+                        <h2 className="text-sm font-semibold text-foreground">{pdfFiles.length} PDF{pdfFiles.length === 1 ? "" : "s"}{countsReady && totalPages ? ` · ${totalPages} pages in total` : ""}</h2>
                         <button type="button" onClick={handleClearPdfs} className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm text-muted-foreground hover:text-destructive">
                           <Trash2 size={15} /> Clear all
                         </button>
@@ -158,7 +182,7 @@ const MergePdf = () => {
                             <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-brand text-[11px] font-bold text-white tabular-nums">{i + 1}</span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm text-foreground">{file.name}</span>
-                              <span className="block text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
+                              <span className="block text-xs text-muted-foreground">{counts.get(file) ? `${counts.get(file)} page${counts.get(file) === 1 ? "" : "s"} · ` : counts.get(file) === null ? "Couldn't read pages · " : ""}{formatFileSize(file.size)}</span>
                             </span>
                             <button type="button" data-no-drag onClick={() => handleRemovePdf(i)} aria-label={`Remove ${file.name}`}
                               className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive">
@@ -167,9 +191,14 @@ const MergePdf = () => {
                           </li>
                         ))}
                       </ol>
-                      <button type="button" onClick={handleAddMorePdfs} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-dark">
-                        <Plus size={16} /> Add more PDFs
-                      </button>
+                      <div className="mt-2 flex flex-wrap gap-x-5">
+                        <button type="button" onClick={handleAddMorePdfs} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-dark">
+                          <Plus size={16} /> Add more PDFs
+                        </button>
+                        <button type="button" onClick={arrangePages} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-dark">
+                          <LayoutGrid size={16} /> Arrange, rotate or remove pages first
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="merge-filename" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Output filename</Label>
@@ -198,7 +227,7 @@ const MergePdf = () => {
                         <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
-                        <span><strong>Merged.</strong> {pdfFiles.length} files combined · {mergedSize}</span>
+                        <span><strong>Merged.</strong> {pdfFiles.length} files combined{totalPages ? ` · ${totalPages} pages` : ""} · {mergedSize}</span>
                       </AlertDescription>
                     </Alert>
                     <div className="flex flex-col sm:flex-row gap-2">

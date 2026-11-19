@@ -28,6 +28,10 @@ const AddPageNumbers = lazy(() => import("@/pages/AddPageNumbers"));
 const RepairPdf = lazy(() => import("@/pages/RepairPdf"));
 const PdfToWord = lazy(() => import("@/pages/PdfToWord"));
 const OrganizePdf = lazy(() => import("@/pages/OrganizePdf"));
+const HeadersFooters = lazy(() => import("@/pages/HeadersFooters"));
+const CropPdf = lazy(() => import("@/pages/CropPdf"));
+const ComparePdf = lazy(() => import("@/pages/ComparePdf"));
+const PdfToExcel = lazy(() => import("@/pages/PdfToExcel"));
 
 // Heavier tools load on demand so the first install stays small.
 const RedactPdf = lazy(() => import("@/pages/RedactPdf"));
@@ -67,6 +71,10 @@ function Tools() {
           <Route path="/organize-pdf" component={OrganizePdf} />
           <Route path="/compress-pdf" component={CompressPdf} />
           <Route path="/page-numbers" component={AddPageNumbers} />
+          <Route path="/headers-footers" component={HeadersFooters} />
+          <Route path="/crop-pdf" component={CropPdf} />
+          <Route path="/compare-pdf" component={ComparePdf} />
+          <Route path="/pdf-to-excel" component={PdfToExcel} />
           <Route path="/repair-pdf" component={RepairPdf} />
           <Route path="/pdf-to-image" component={PdfToImage} />
           <Route path="/image-to-pdf" component={ImageToPdf} />

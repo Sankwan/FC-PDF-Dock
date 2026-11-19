@@ -12,7 +12,7 @@ import { Images, Loader2 } from "lucide-react";
 import SaveShareButtons, { SAVE_HINT } from "@/components/SaveShareButtons";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { generateFilePreview } from "@/lib/fileUtils";
+import { generateFilePreview, formatFileSize } from "@/lib/fileUtils";
 import { convertImagesToPdf, rotateImage } from "@/lib/imageUtils";
 import { IMAGE_ACCEPT, IMAGE_LIMITS, decodeImagePages } from "@/lib/addons/images";
 
@@ -118,7 +118,7 @@ const ImageToPdf = () => {
         customHeight: pageSize === "custom" ? customHeight : undefined,
         filename: filename || "images.pdf",
       });
-      setPdfResult({ file: pdfFile, size: `${(pdfFile.size / 1024 / 1024).toFixed(2)} MB` });
+      setPdfResult({ file: pdfFile, size: formatFileSize(pdfFile.size) });
       toast({ title: "PDF created", description: "Your images have been combined into a PDF." });
     } catch {
       toast({ variant: "destructive", title: "Conversion failed" });

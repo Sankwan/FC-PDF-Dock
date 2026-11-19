@@ -1,19 +1,23 @@
 import { useState, useCallback, type KeyboardEvent } from "react";
+import { Link } from "wouter";
 import BackToTools from "@/components/BackToTools";
 import FileUpload from "@/components/FileUpload";
 import FilePreview from "@/components/FilePreview";
-import { FileDown, Download, AlertTriangle, CheckCircle2, Type, Image as ImageIcon } from "lucide-react";
+import { FileDown, AlertTriangle, CheckCircle2, Type, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFileVault } from "@/context/FileVault";
-import { generateFilePreview, downloadFile, formatFileSize } from "@/lib/fileUtils";
+import { generateFilePreview, formatFileSize } from "@/lib/fileUtils";
 import { compressPdf } from "@/lib/pdfUtils";
-import { COMPRESS_PRESETS, compressPdfKeepText, type CompressLevel } from "@/lib/compress";
+import { COMPRESS_PRESETS, compressPdfKeepText, compressToTarget, type CompressLevel } from "@/lib/compress";
+import SaveShareButtons from "@/components/SaveShareButtons";
 
 type Method = "keep-text" | "flatten";
+type Goal = "strength" | "size";
+const TARGETS = [{ label: "100 KB", kb: 100 }, { label: "200 KB", kb: 200 }, { label: "500 KB", kb: 500 }, { label: "1 MB", kb: 1024 }, { label: "2 MB", kb: 2048 }, { label: "5 MB", kb: 5120 }];
 
 interface Outcome {
   file: File;
@@ -23,6 +27,9 @@ interface Outcome {
   imagesRecompressed?: number;
   unchanged?: boolean;
   hadDigitalSignature?: boolean;
+  /** set when aiming for a size */
+  target?: number;
+  reached?: boolean;
 }
 
 const radioKeys = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -44,6 +51,8 @@ const CompressPdf = () => {
   const [method, setMethod] = useState<Method>("keep-text");
   const [level, setLevel] = useState<CompressLevel>("balanced");
   const [removeMetadata, setRemoveMetadata] = useState(false);
+  const [goal, setGoal] = useState<Goal>("strength");
+  const [targetKb, setTargetKb] = useState(1024);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState("");
@@ -79,7 +88,14 @@ const CompressPdf = () => {
     setProgress(0);
     setOutcome(null);
     try {
-      if (method === "keep-text") {
+      if (goal === "size") {
+        const target = targetKb * 1024;
+        const r = await compressToTarget(pdfFile, target, {
+          removeMetadata,
+          onProgress: (done, total, s) => { setStage(s); setProgress(Math.round((done / total) * 95)); },
+        });
+        setOutcome({ ...r, method: "keep-text" });
+      } else if (method === "keep-text") {
         const r = await compressPdfKeepText(pdfFile, {
           level,
           removeMetadata,
@@ -107,7 +123,31 @@ const CompressPdf = () => {
       setBusy(false);
       setStage("");
     }
-  }, [pdfFile, method, level, removeMetadata, toast]);
+  }, [pdfFile, method, level, removeMetadata, goal, targetKb, toast]);
+
+  /** Last resort when a size can't be reached with text kept: turn pages into pictures. */
+  const flattenToTarget = useCallback(async () => {
+    if (!pdfFile || !outcome?.target) return;
+    const target = outcome.target;
+    setBusy(true);
+    setProgress(0);
+    setStage("Turning pages into images");
+    try {
+      let file: File | null = null;
+      for (const quality of ["medium", "high"] as const) {
+        file = await compressPdf(pdfFile, { quality, removeMetadata, targetSizeKB: target / 1024, onProgress: (d, t) => setProgress(Math.round((d / t) * 95)) });
+        if (file.size <= target) break;
+      }
+      setOutcome({ file: file!, originalBytes: pdfFile.size, outputBytes: file!.size, method: "flatten", target, reached: file!.size <= target, unchanged: file!.size >= pdfFile.size });
+      setProgress(100);
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Couldn't flatten this PDF", description: "Try Split PDF by file size instead." });
+    } finally {
+      setBusy(false);
+      setStage("");
+    }
+  }, [pdfFile, outcome, removeMetadata, toast]);
 
   const saved = outcome ? Math.max(0, Math.round((1 - outcome.outputBytes / outcome.originalBytes) * 100)) : 0;
 
@@ -164,6 +204,38 @@ const CompressPdf = () => {
 
                 {!outcome && !busy && (
                   <div className="space-y-6 mb-6">
+                    <div role="tablist" aria-label="What do you need?" className="grid grid-cols-2 rounded-lg bg-muted p-1">
+                      {([["strength", "Choose strength"], ["size", "Fit under a size"]] as const).map(([id, name]) => (
+                        <button key={id} type="button" role="tab" aria-selected={goal === id} onClick={() => setGoal(id)}
+                          className={`min-h-10 rounded-md text-sm font-semibold ${goal === id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{name}</button>
+                      ))}
+                    </div>
+
+                    {goal === "size" && (
+                      <fieldset>
+                        <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Make it smaller than</legend>
+                        <div role="radiogroup" aria-label="Target size" onKeyDown={radioKeys} className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                          {TARGETS.map((t) => (
+                            <button key={t.kb} type="button" role="radio" aria-checked={targetKb === t.kb} tabIndex={targetKb === t.kb ? 0 : -1} onClick={() => setTargetKb(t.kb)}
+                              disabled={t.kb * 1024 >= pdfFile.size}
+                              className={`min-h-11 rounded-lg border text-sm font-semibold disabled:opacity-40 ${targetKb === t.kb ? "border-brand bg-brand-tint" : "border-border hover:border-brand/50"}`}>{t.label}</button>
+                          ))}
+                        </div>
+                        <label className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                          Or exactly
+                          <input type="number" inputMode="decimal" min={0.05} step={0.1} value={+(targetKb / 1024).toFixed(2)}
+                            onChange={(e) => setTargetKb(Math.max(50, Math.round((Number(e.target.value) || 0) * 1024)))}
+                            className="h-11 w-24 rounded-md border border-input bg-card px-3 text-foreground" /> MB
+                        </label>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {targetKb * 1024 >= pdfFile.size
+                            ? `This file is already ${formatFileSize(pdfFile.size)}, under that size.`
+                            : "Photos are shrunk only as much as needed. Text always stays sharp and searchable."}
+                        </p>
+                      </fieldset>
+                    )}
+
+                    {goal === "strength" && (<>
                     <fieldset>
                       <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Method</legend>
                       <div role="radiogroup" aria-label="Compression method" onKeyDown={radioKeys} className="grid gap-3">
@@ -198,6 +270,8 @@ const CompressPdf = () => {
                       </div>
                     </fieldset>
 
+                    </>)}
+
                     <div className="flex items-center gap-2.5">
                       <Checkbox id="remove-metadata" checked={removeMetadata} onCheckedChange={(v) => setRemoveMetadata(v === true)} />
                       <Label htmlFor="remove-metadata" className="text-sm text-muted-foreground cursor-pointer">Remove author, title and keywords from the file</Label>
@@ -216,13 +290,39 @@ const CompressPdf = () => {
                   </div>
                 )}
 
+                {outcome && outcome.target !== undefined && (
+                  <div className={`mb-4 flex gap-2.5 rounded-lg border p-3 text-sm ${outcome.reached ? "border-brand/40 bg-brand-tint" : "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50"}`}>
+                    {outcome.reached ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-brand" /> : <AlertTriangle size={18} className="mt-0.5 shrink-0" />}
+                    <div>
+                      {outcome.reached ? (
+                        <p><strong>{formatFileSize(outcome.outputBytes)}</strong>, under your {formatFileSize(outcome.target)} limit.</p>
+                      ) : (
+                        <>
+                          <p><strong>Couldn't get under {formatFileSize(outcome.target)}{outcome.method === "keep-text" ? " while keeping text sharp" : ""}.</strong> The smallest was {formatFileSize(outcome.outputBytes)}.</p>
+                          <p className="mt-1">
+                            {outcome.method === "keep-text"
+                              ? "You can save this, turn the pages into images (smaller, but text can't be searched or copied), or split the PDF into parts under the limit."
+                              : "Split the PDF into parts under the limit instead."}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {outcome.method === "keep-text" && (
+                              <button type="button" onClick={flattenToTarget} className="inline-flex min-h-10 items-center rounded-md border border-current px-3 text-sm font-semibold">Turn pages into images</button>
+                            )}
+                            <Link href="/split-pdf" className="inline-flex min-h-10 items-center rounded-md border border-current px-3 text-sm font-semibold">Split by file size</Link>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {outcome && (
                   <div className="mb-6 rounded-lg border border-border p-4">
                     {outcome.unchanged ? (
                       <div className="flex gap-3">
                         <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-brand" />
                         <div className="text-sm">
-                          <p className="font-semibold text-foreground">This PDF is already as small as it can be with {COMPRESS_PRESETS[level].label.toLowerCase()} settings.</p>
+                          <p className="font-semibold text-foreground">{outcome.target !== undefined ? "This PDF couldn't be made any smaller while keeping text." : `This PDF is already as small as it can be with ${COMPRESS_PRESETS[level].label.toLowerCase()} settings.`}</p>
                           <p className="mt-1 text-muted-foreground">
                             {method === "keep-text" ? "Try Strong, or Flatten to images if it's a scanned document." : "It's probably mostly text already."}
                           </p>
@@ -263,15 +363,11 @@ const CompressPdf = () => {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   {!outcome && !busy && (
-                    <Button onClick={handleCompress} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                      <FileDown size={15} className="mr-1" /> Compress PDF
+                    <Button onClick={handleCompress} disabled={goal === "size" && targetKb * 1024 >= pdfFile.size} className="h-11 bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
+                      <FileDown size={15} className="mr-1" /> {goal === "size" ? `Compress to under ${targetKb >= 1024 ? `${+(targetKb / 1024).toFixed(2)} MB` : `${targetKb} KB`}` : "Compress PDF"}
                     </Button>
                   )}
-                  {outcome && !outcome.unchanged && (
-                    <Button onClick={() => downloadFile(outcome.file, outcome.file.name, "application/pdf")} className="bg-brand text-white hover:bg-brand-dark rounded-md font-semibold">
-                      <Download size={15} className="mr-1" /> Download PDF
-                    </Button>
-                  )}
+                  {outcome && !outcome.unchanged && <SaveShareButtons file={outcome.file} />}
                   {outcome && (
                     <Button variant="outline" onClick={() => setOutcome(null)} className="rounded-md">
                       Try other settings

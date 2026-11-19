@@ -16,20 +16,25 @@ kept for the account; the app does not record a tool-use history. The scanner st
 | Group | Tool | Runs on |
 |---|---|---|
 | Official documents | **Letterhead**: write a letter on the FC letterhead, put the letterhead on an existing PDF, or download a blank letterhead (PDF or Word) | device |
-| | **Watermark**: CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY and other presets | device |
+| | **Watermark**: CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY and other presets; diagonal, straight or tiled; five colours; live preview of the real output | device |
+| | **Headers & footers**: left/centre/right text at the top and bottom with page number, total pages, date and file name; reference numbers (start at any number, 0001 style); skip or don't count a cover page; warns when it would print over the page's own text; live preview | device |
+| | **Compare PDFs**: word-by-word changes between two versions, highlighted on both pages, number and "not" changes flagged; save highlighted copies | device |
 | | **Edit PDF**: tap existing text to retype it (the original is painted over), add text, signatures, ticks, crosses, dates, stamps, shapes, pen and highlighter; undo/redo; unfinished work is kept on the device for 24 hours | device |
-| | **Sign PDF**: draw, type or photograph a signature (paper removed automatically) and place it; it snaps to a "Signature:" line when there is one; records the signing time, and **Check a signed PDF** shows whether (and when) it was changed afterwards | device |
+| | **Sign PDF**: draw, type or photograph a signature (paper removed automatically) and place it; it snaps to a "Signature:" line when there is one; records the signing time, and **Check a signed PDF** shows whether the pages or the recorded time were changed afterwards (an everyday change check, not proof of who signed) | device |
 | | **Redact PDF**: finds Ghana Card, phone, email, SSNIT and account numbers and names, or draw boxes; removes them permanently and then verifies nothing is left | device |
 | | **QR codes**: create PNG codes or read their text from an image | device |
 | | **Protect PDF**: password to open, and/or restrict printing, copying and editing | device |
-| Organise | Merge, Split, **Organise pages** (reorder, rotate, delete, duplicate, extract, blank pages) | device |
-| | **Compress PDF**: shrinks images only, so text stays selectable and searchable | device |
+| Organise | **Merge** (page count per file; arrange individual pages in Organise before merging), **Organise pages** (reorder, rotate, delete, duplicate, extract, blank pages) | device |
+| | **Split PDF**: tap pages to pick them, type ranges ("1-3, 7, 12-"), every N pages, or by file size; lists the files it will make first; save all as one ZIP | device |
+| | **Crop & resize**: trim white margins automatically (handles scans) or by dragging the edges, each page or one size for all; optionally remove the cut-off part for good; put every page on A4, A5, A3, Letter or Legal, or 2/4 pages per sheet | device |
+| | **Compress PDF**: shrinks images only, so text stays selectable and searchable; choose a strength or a target size ("under 1 MB"), with an honest message when the target can't be met | device |
 | | **Add page numbers**: six positions, "1", "Page 1", "1 of 9" styles, skip a cover page | device |
 | | **Repair PDF**: rebuilds damaged files (qpdf, then pdf-lib); last resort keeps each readable page as an image | device |
 | Scan & convert | **Scan document**: phone camera scanner with edge detection, straightening, shadow removal, B&W; save or share (WhatsApp, email) | device |
 | | **Convert images**: HEIC/HEIF, multipage TIFF, BMP and browser-supported images to JPG/PNG/WebP; multiple outputs as ZIP | device |
 | | Image to PDF (including all TIFF/HEIC pages), PDF to Image, OCR PDF, Word, PowerPoint and Excel to PDF (.docx/.pptx/.xlsx) | device |
 | | PDF to Word | browser: editable text / page images, local English OCR |
+| | **PDF to Excel**: tables to .xlsx (a sheet per table or one sheet), joins tables that run over a page break; numbers, GH₵ amounts and dates as real values, IDs and phone numbers kept as text; flags totals that don't add up; fix columns/rows or draw a box around a missed table; CSV too | device |
 
 Locked PDFs are detected when added to any tool; the person is asked for the
 password (or, for files that only have editing restrictions, asked to

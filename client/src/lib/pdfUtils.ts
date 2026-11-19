@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 import { loadPdfDocument, renderPdfPageToCanvas } from "./pdfjs";
 import { brand } from "@/brand";
 
@@ -200,52 +200,6 @@ export const mergePdfFiles = async (pdfFiles: File[]): Promise<File> => {
   return makePdfFile(mergedPdfBytes, "merged.pdf");
 };
 
-interface WatermarkOptions {
-  text: string;
-  opacity?: number;
-  fontSize?: number;
-}
-
-/**
- * Adds a diagonal text watermark to every page of a PDF
- */
-export const addWatermark = async (
-  pdfFile: File,
-  options: WatermarkOptions
-): Promise<File> => {
-  const { text, opacity = 0.15, fontSize = 48 } = options;
-
-  const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdfDoc = await loadPdfForEditing(arrayBuffer);
-  const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const pages = pdfDoc.getPages();
-
-  for (const page of pages) {
-    const { width, height } = page.getSize();
-    // Shrink the watermark if it would overflow the page diagonal
-    let size = fontSize;
-    while (font.widthOfTextAtSize(text, size) > Math.hypot(width, height) * 0.85 && size > 8) {
-      size -= 2;
-    }
-    const textWidth = font.widthOfTextAtSize(text, size);
-    const x = width / 2 - (textWidth / 2) * Math.cos(Math.PI / 4) + (size / 2) * Math.sin(Math.PI / 4);
-    const y = height / 2 - (textWidth / 2) * Math.sin(Math.PI / 4) - (size / 2) * Math.cos(Math.PI / 4);
-
-    page.drawText(text, {
-      x,
-      y,
-      size,
-      font,
-      color: rgb(0.9, 0.1, 0.1),
-      opacity,
-      rotate: degrees(45),
-    });
-  }
-
-  const pdfBytes = await pdfDoc.save();
-  return makePdfFile(pdfBytes, pdfFile.name.replace(/\.pdf$/i, "") + "_watermarked.pdf");
-};
-
 interface ProtectOptions {
   removeMetadata?: boolean;
 }
@@ -277,53 +231,3 @@ export const protectPdf = async (
   const pdfBytes = await pdfDoc.save();
   return makePdfFile(pdfBytes, pdfFile.name.replace(/\.pdf$/i, "") + "_protected.pdf");
 };
-
-interface SplitPdfOptions {
-  pages?: number[] | "all";
-  outputType?: "single" | "multiple";
-}
-
-/**
- * Splits a PDF file into multiple PDFs based on specified pages
- */
-export const splitPdf = async (
-  pdfFile: File,
-  options: SplitPdfOptions = {}
-): Promise<File[]> => {
-  const { pages = "all", outputType = "multiple" } = options;
-
-  const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdfDoc = await loadPdfForEditing(arrayBuffer);
-  const numPages = pdfDoc.getPageCount();
-
-  const pagesToExtract =
-    pages === "all"
-      ? Array.from({ length: numPages }, (_, i) => i)
-      : pages.filter((p) => p > 0 && p <= numPages).map((p) => p - 1);
-
-  if (pagesToExtract.length === 0) {
-    throw new Error("No valid pages to extract");
-  }
-
-  const baseName = pdfFile.name.replace(/\.pdf$/i, "");
-
-  if (outputType === "single") {
-    const newPdf = await PDFDocument.create();
-    const copied = await newPdf.copyPages(pdfDoc, pagesToExtract);
-    copied.forEach((page) => newPdf.addPage(page));
-    const newPdfBytes = await newPdf.save();
-    return [makePdfFile(newPdfBytes, `${baseName}_extracted.pdf`)];
-  }
-
-  const outputFiles: File[] = [];
-  for (const pageIndex of pagesToExtract) {
-    const newPdf = await PDFDocument.create();
-    const [page] = await newPdf.copyPages(pdfDoc, [pageIndex]);
-    newPdf.addPage(page);
-    const newPdfBytes = await newPdf.save();
-    outputFiles.push(makePdfFile(newPdfBytes, `${baseName}_page_${pageIndex + 1}.pdf`));
-  }
-
-  return outputFiles;
-};
-

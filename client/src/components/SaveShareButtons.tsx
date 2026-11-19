@@ -2,13 +2,15 @@ import { Download, Share2 } from "lucide-react";
 import { downloadFile } from "@/lib/fileUtils";
 import { canShareFiles, shareFile } from "@/lib/share";
 import { useToast } from "@/hooks/use-toast";
+import NextSteps from "@/components/NextSteps";
 
 /** Where "Save" puts the file on each kind of device. */
 export const SAVE_HINT =
   "Save puts the file in your Downloads folder. On iPhone, open the Files app > Downloads (Safari may ask to confirm first). On Android, open Files or Downloads. Share sends it straight to WhatsApp, email or Drive.";
 
 /** "Save" plus, where the device supports it, "Share" through the system share sheet. */
-const SaveShareButtons = ({ file, saveLabel = "Save PDF", className = "" }: { file: File; saveLabel?: string; className?: string }) => {
+/** `next` adds "Keep going with this file" buttons for PDFs. */
+const SaveShareButtons = ({ file, saveLabel = "Save PDF", className = "", next = true }: { file: File; saveLabel?: string; className?: string; next?: boolean }) => {
   const { toast } = useToast();
   const shareable = canShareFiles(file);
 
@@ -22,6 +24,7 @@ const SaveShareButtons = ({ file, saveLabel = "Save PDF", className = "" }: { fi
   };
 
   return (
+    <div className="space-y-3">
     <div className={`flex flex-col gap-2 sm:flex-row ${className}`}>
       <button
         type="button"
@@ -39,6 +42,8 @@ const SaveShareButtons = ({ file, saveLabel = "Save PDF", className = "" }: { fi
           <Share2 size={16} /> Share
         </button>
       )}
+    </div>
+    {next && <NextSteps file={file} />}
     </div>
   );
 };
