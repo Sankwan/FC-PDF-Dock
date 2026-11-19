@@ -112,6 +112,7 @@ export const ARTICLES: Article[] = [
     tips: [
       "Scanning more than one page? Do them all in one go so they end up in a single PDF.",
       "If the page came out sideways, use Organise pages to rotate it.",
+      "Scanned on a photocopier in double-sided mode? Remove blank pages takes out the empty backs.",
       "Scans already made on a photocopier can go straight to Compress PDF.",
     ],
     faqs: [
@@ -124,7 +125,7 @@ export const ARTICLES: Article[] = [
     slug: "sign-and-send-back",
     title: "Sign a letter or form and send it back",
     summary: "Add your signature, the date and any ticks to a PDF, without printing it.",
-    tools: ["sign-pdf", "edit-pdf", "compress-pdf"],
+    tools: ["sign-pdf", "fill-form", "edit-pdf", "compress-pdf"],
     intro:
       "Someone has sent you a PDF to sign. You don't need to print it, sign it and scan it back. Sign PDF puts your signature on the page, and you can add the date, initials or ticks at the same time.",
     sections: [
@@ -140,10 +141,10 @@ export const ARTICLES: Article[] = [
       },
       {
         heading: "Fill in the rest of a form",
-        text: "If the form also needs ticks, names or other text written in, use Edit PDF on the same file.",
+        text: "If it's a form, fill it in before you sign.",
         steps: [
-          { text: "Open Edit PDF, choose the file, and pick text, tick or date from the toolbar.", tool: "edit-pdf" },
-          { text: "Tap where each one should go, type, and save." },
+          { text: "If the form has its own boxes, open Fill in forms, type your answers, and save. Then tap Sign under Keep going with this file.", tool: "fill-form" },
+          { text: "If it has no boxes (a scan or a printed form), use Edit PDF and pick text, tick or date from the toolbar, then tap where each one goes.", tool: "edit-pdf" },
         ],
       },
       {
@@ -162,7 +163,48 @@ export const ARTICLES: Article[] = [
       { q: "Is this a legal digital signature?", a: "It's a visible signature, like signing on paper. It isn't a certificate-based digital signature. Most internal letters and forms only need a visible signature; check with the recipient for contracts." },
       { q: "Can someone copy my signature from the PDF?", a: "Anyone with the file can see it, just like a signed paper. Only sign documents you intend to send, and use Protect PDF to stop editing if you're worried." },
     ],
-    related: ["scan-and-send-signed-letter", "pdf-too-big-to-email", "remove-personal-details"],
+    related: ["fill-in-a-form", "scan-and-send-signed-letter", "pdf-too-big-to-email"],
+  },
+  {
+    slug: "fill-in-a-form",
+    title: "Fill in an HR, leave or procurement form",
+    summary: "Type into a PDF form, tick its boxes and sign it, without printing anything.",
+    tools: ["fill-form", "sign-pdf", "edit-pdf"],
+    intro:
+      "Many official forms come as PDFs with boxes you can type into: leave applications, staff data forms, claims, bid forms. Fill in forms finds those boxes and lets you answer them on your phone or computer. When you're done, the answers can be locked into the page so they look the same for whoever opens it.",
+    sections: [
+      {
+        heading: "Fill it in",
+        steps: [
+          { text: "Open Fill in forms and choose the PDF.", tool: "fill-form" },
+          { text: "On a phone, the Form view lists every question with large boxes. On a computer, On the page lets you type straight into the blue boxes on the form itself." },
+          { text: "Type your answers, tick boxes and choose options. The count at the top shows how many you've answered." },
+        ],
+      },
+      {
+        heading: "Save, sign and send",
+        steps: [
+          { text: "Leave Lock the answers into the page ticked if you're sending the form to someone. The answers then show in every app and can't be changed." },
+          { text: "Tap Save filled form, then Save or Share." },
+          { text: "To sign it, tap Sign under Keep going with this file and place your signature.", tool: "sign-pdf" },
+        ],
+      },
+      {
+        heading: "If it says there are no boxes",
+        text: "The form is a scan, or was saved from Word without fillable fields. You can still fill it in by typing on the page.",
+        steps: [{ text: "Tap Fill it in Edit PDF, then use text, tick and date from the toolbar.", tool: "edit-pdf" }],
+      },
+    ],
+    tips: [
+      "Answers aren't kept if you leave the page, so fill the form in one go and save before closing.",
+      "Reusing the form? Tap Also save an editable copy after saving, so you can change the answers next time.",
+      "Characters like ₵, ɛ and ɔ aren't in most forms' fonts. They're written as GH¢, e and o, and you're told when that happens.",
+    ],
+    faqs: [
+      { q: "Will the person I send it to see my answers?", a: "Yes. With the answers locked in, they're part of the page and show in any PDF app, on phones and in print." },
+      { q: "Can I use this on an Adobe LiveCycle (XFA) form?", a: "No. Those older forms only work in Adobe Reader. PDFDock will tell you if a form is one of them." },
+    ],
+    related: ["sign-and-send-back", "scan-and-send-signed-letter", "remove-personal-details"],
   },
   {
     slug: "combine-documents-for-submission",

@@ -89,6 +89,20 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
+    id: "fill-form",
+    when: "Fill in a form that has its own boxes, such as HR, leave or procurement forms, without printing it.",
+    steps: [
+      "Choose the PDF form. Its boxes are found automatically.",
+      "Fill in the answers. Form shows them as a simple list (easiest on a phone); On the page lets you type straight into the blue boxes.",
+      "Leave Lock the answers into the page ticked if you're sending it, so the answers show in every app and can't be changed.",
+      "Tap Save filled form, then Save or Share. To sign it, tap Sign under Keep going with this file.",
+    ],
+    tips: [
+      "If it says there are no boxes to fill in, the form is a scan or was saved without fillable fields. Tap Fill it in Edit PDF to type on it instead.",
+      "Answers aren't kept if you leave the page, so save before closing. Also save an editable copy if you'll reuse the form.",
+    ],
+  },
+  {
     id: "redact-pdf",
     when: "Permanently remove Ghana Card numbers, phone numbers, names and other details before sharing.",
     steps: [
@@ -150,6 +164,17 @@ export const GUIDES: Guide[] = [
       "Add a blank page if you need one, then save.",
     ],
     tips: ["Undo puts back your last change.", "Text and quality stay exactly as they were."],
+  },
+  {
+    id: "remove-blank-pages",
+    when: "Remove the empty backs left by double-sided scanning, or blank pages in any PDF.",
+    steps: [
+      "Choose your PDF. Every page is checked and the blank ones are marked Remove.",
+      "Glance over the pages. Tap any page to keep it or remove it.",
+      "If too many or too few were found, change What counts as blank.",
+      "Tap Remove, then Save or Share.",
+    ],
+    tips: ["Faint show-through from the other side and dust don't count as content.", "Pages that only say \"This page is intentionally left blank\" can be removed too."],
   },
   {
     id: "compress-pdf",

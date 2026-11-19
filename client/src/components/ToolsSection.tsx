@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import {
   Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, FilePenLine, Hash, Wrench, Presentation, Sheet, PanelTop, Crop, FileDiff, Table2, BookOpenText, type LucideIcon,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, FilePenLine, Hash, Wrench, Presentation, Sheet, PanelTop, Crop, FileDiff, Table2, BookOpenText, ClipboardPen, FileMinus2, type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Search, Clock3 } from "lucide-react";
@@ -24,6 +24,7 @@ export const tools: Tool[] = [
   { id: "merge-pdfs", title: "Merge PDFs", description: "Combine several PDFs into one, in the order you choose.", link: "/merge-pdfs", icon: Combine, group: "organise" },
   { id: "split-pdf", title: "Split PDF", description: "Pull out pages or split a PDF into separate files.", link: "/split-pdf", icon: Scissors, group: "organise" },
   { id: "organize-pdf", title: "Organise pages", description: "Reorder, rotate, delete or copy pages, with a preview of every page.", link: "/organize-pdf", icon: LayoutGrid, group: "organise", isNew: true },
+  { id: "remove-blank-pages", title: "Remove blank pages", description: "Find and remove the empty pages left by double-sided scanning.", link: "/remove-blank-pages", icon: FileMinus2, group: "organise", isNew: true },
   { id: "compress-pdf", title: "Compress PDF", description: "Shrink PDFs for email and WhatsApp. Text stays sharp and searchable.", link: "/compress-pdf", icon: FileDown, group: "organise" },
   { id: "page-numbers", title: "Add page numbers", description: "Number pages at the top or bottom, with an option to skip the cover.", link: "/page-numbers", icon: Hash, group: "organise", isNew: true },
   { id: "crop-pdf", title: "Crop & resize", description: "Trim scan borders and margins, or put every page on A4 or another paper size.", link: "/crop-pdf", icon: Crop, group: "organise", isNew: true },
@@ -46,6 +47,7 @@ export const tools: Tool[] = [
   { id: "compare-pdf", title: "Compare PDFs", description: "See every word that changed between two versions of a document.", link: "/compare-pdf", icon: FileDiff, group: "official", isNew: true },
   { id: "edit-pdf", title: "Edit PDF", description: "Change text, add signatures, ticks, dates, stamps and drawings.", link: "/edit-pdf", icon: FilePenLine, group: "official", isNew: true },
   { id: "sign-pdf", title: "Sign PDF", description: "Draw, type or photograph your signature. Later, check if a signed file was changed.", link: "/sign-pdf", icon: PenLine, group: "official" },
+  { id: "fill-form", title: "Fill in forms", description: "Type into a PDF form's own boxes and tick its boxes, then lock the answers in.", link: "/fill-form", icon: ClipboardPen, group: "official", isNew: true },
   { id: "redact-pdf", title: "Redact PDF", description: "Permanently black out Ghana Card numbers, phone numbers and other personal details.", link: "/redact-pdf", icon: EyeOff, group: "official", isNew: true },
   { id: "protect-pdf", title: "Protect PDF", description: "Add a password, or stop others printing, copying or editing.", link: "/protect-pdf", icon: ShieldCheck, group: "official" },
 ];

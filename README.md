@@ -21,10 +21,11 @@ kept for the account; the app does not record a tool-use history. The scanner st
 | | **Compare PDFs**: word-by-word changes between two versions, highlighted on both pages, number and "not" changes flagged; save highlighted copies | device |
 | | **Edit PDF**: tap existing text to retype it (the original is painted over), add text, signatures, ticks, crosses, dates, stamps, shapes, pen and highlighter; undo/redo; unfinished work is kept on the device for 24 hours | device |
 | | **Sign PDF**: draw, type or photograph a signature (paper removed automatically) and place it; it snaps to a "Signature:" line when there is one; records the signing time, and **Check a signed PDF** shows whether the pages or the recorded time were changed afterwards (an everyday change check, not proof of who signed) | device |
+| | **Fill in forms**: type into a PDF form's own fields, tick boxes, radio buttons and dropdowns, as a phone-friendly list or on the page; lock the answers in (flatten) or keep it fillable; forms without fields are sent to Edit PDF | device |
 | | **Redact PDF**: finds Ghana Card, phone, email, SSNIT and account numbers and names, or draw boxes; removes them permanently and then verifies nothing is left | device |
 | | **QR codes**: create PNG codes or read their text from an image | device |
 | | **Protect PDF**: password to open, and/or restrict printing, copying and editing | device |
-| Organise | **Merge** (page count per file; arrange individual pages in Organise before merging), **Organise pages** (reorder, rotate, delete, duplicate, extract, blank pages) | device |
+| Organise | **Merge** (page count per file; arrange individual pages in Organise before merging), **Organise pages** (reorder, rotate, delete, duplicate, extract, blank pages), **Remove blank pages** (finds empty pages from double-sided scans, ignoring show-through and dust; review, then remove) | device |
 | | **Split PDF**: tap pages to pick them, type ranges ("1-3, 7, 12-"), every N pages, or by file size; lists the files it will make first; save all as one ZIP | device |
 | | **Crop & resize**: trim white margins automatically (handles scans) or by dragging the edges, each page or one size for all; optionally remove the cut-off part for good; put every page on A4, A5, A3, Letter or Legal, or 2/4 pages per sheet | device |
 | | **Compress PDF**: shrinks images only, so text stays selectable and searchable; choose a strength or a target size ("under 1 MB"), with an honest message when the target can't be met | device |

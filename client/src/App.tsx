@@ -33,6 +33,8 @@ const CropPdf = lazy(() => import("@/pages/CropPdf"));
 const ComparePdf = lazy(() => import("@/pages/ComparePdf"));
 const PdfToExcel = lazy(() => import("@/pages/PdfToExcel"));
 const ReadPdf = lazy(() => import("@/pages/ReadPdf"));
+const FillForm = lazy(() => import("@/pages/FillForm"));
+const RemoveBlankPages = lazy(() => import("@/pages/RemoveBlankPages"));
 const Guides = lazy(() => import("@/pages/Guides"));
 const GuideArticle = lazy(() => import("@/pages/GuideArticle"));
 
@@ -72,6 +74,8 @@ function Tools() {
           <Route path="/merge-pdfs" component={MergePdf} />
           <Route path="/split-pdf" component={SplitPdf} />
           <Route path="/organize-pdf" component={OrganizePdf} />
+          <Route path="/remove-blank-pages" component={RemoveBlankPages} />
+          <Route path="/fill-form" component={FillForm} />
           <Route path="/compress-pdf" component={CompressPdf} />
           <Route path="/page-numbers" component={AddPageNumbers} />
           <Route path="/headers-footers" component={HeadersFooters} />
