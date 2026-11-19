@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import {
   Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, Hash, Wrench, Presentation, Sheet, type LucideIcon,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, FilePenLine, Hash, Wrench, Presentation, Sheet, type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Search, Clock3 } from "lucide-react";
@@ -39,7 +39,8 @@ export const tools: Tool[] = [
 
   { id: "letterhead", title: "Letterhead", description: "Put the official FC letterhead on a letter, or get a blank letterhead for Word.", link: "/letterhead", icon: FileBadge2, group: "official", isNew: true },
   { id: "watermark-pdf", title: "Watermark", description: "Mark pages CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY or your own text.", link: "/watermark-pdf", icon: Stamp, group: "official" },
-  { id: "sign-pdf", title: "Sign PDF", description: "Draw your signature and place it. Later, check if a signed file was changed.", link: "/sign-pdf", icon: PenLine, group: "official" },
+  { id: "edit-pdf", title: "Edit PDF", description: "Change text, add signatures, ticks, dates, stamps and drawings.", link: "/edit-pdf", icon: FilePenLine, group: "official", isNew: true },
+  { id: "sign-pdf", title: "Sign PDF", description: "Draw, type or photograph your signature. Later, check if a signed file was changed.", link: "/sign-pdf", icon: PenLine, group: "official" },
   { id: "redact-pdf", title: "Redact PDF", description: "Permanently black out Ghana Card numbers, phone numbers and other personal details.", link: "/redact-pdf", icon: EyeOff, group: "official", isNew: true },
   { id: "protect-pdf", title: "Protect PDF", description: "Add a password, or stop others printing, copying or editing.", link: "/protect-pdf", icon: ShieldCheck, group: "official" },
 ];

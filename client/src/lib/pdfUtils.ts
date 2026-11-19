@@ -1,7 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 import { loadPdfDocument, renderPdfPageToCanvas } from "./pdfjs";
 import { brand } from "@/brand";
-import { addSignRecord } from "./signRecord";
 
 export { parsePageRange, loadPdfDocument, renderPdfPageToCanvas, renderPdfThumbnail } from "./pdfjs";
 
@@ -328,43 +327,3 @@ export const splitPdf = async (
   return outputFiles;
 };
 
-export interface SignaturePlacement {
-  pageNumber: number; // 1-based
-  /** all values are ratios (0-1) of the rendered page box */
-  xRatio: number;
-  yRatio: number;
-  widthRatio: number;
-  heightRatio: number;
-  dataUrl: string; // PNG data URL
-}
-
-/**
- * Stamps one or more signature images onto a PDF.
- */
-export const signPdf = async (
-  pdfFile: File,
-  placements: SignaturePlacement[]
-): Promise<File> => {
-  if (placements.length === 0) throw new Error("No signatures placed");
-
-  const pdfDoc = await loadPdfForEditing(await pdfFile.arrayBuffer());
-  const pages = pdfDoc.getPages();
-
-  for (const placement of placements) {
-    const page = pages[placement.pageNumber - 1];
-    if (!page) continue;
-    const { width, height } = page.getSize();
-    const png = await pdfDoc.embedPng(placement.dataUrl);
-    const drawWidth = placement.widthRatio * width;
-    const drawHeight = placement.heightRatio * height;
-    page.drawImage(png, {
-      x: placement.xRatio * width,
-      y: height - placement.yRatio * height - drawHeight,
-      width: drawWidth,
-      height: drawHeight,
-    });
-  }
-
-  const bytes = await addSignRecord(await pdfDoc.save());
-  return makePdfFile(bytes, pdfFile.name.replace(/\.pdf$/i, "") + "_signed.pdf");
-};

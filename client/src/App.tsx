@@ -19,7 +19,7 @@ const PdfToImage = lazy(() => import("@/pages/PdfToImage"));
 const ImageToPdf = lazy(() => import("@/pages/ImageToPdf"));
 const WatermarkPdf = lazy(() => import("@/pages/WatermarkPdf"));
 const ProtectPdf = lazy(() => import("@/pages/ProtectPdf"));
-const SignPdf = lazy(() => import("@/pages/SignPdf"));
+const EditPdf = lazy(() => import("@/pages/EditPdf"));
 const OcrPdf = lazy(() => import("@/pages/OcrPdf"));
 const WordToPdf = lazy(() => import("@/pages/WordToPdf"));
 const PowerpointToPdf = lazy(() => import("@/pages/PowerpointToPdf"));
@@ -77,7 +77,8 @@ function Tools() {
           <Route path="/convert-images" component={ImageConvert} />
           <Route path="/protect-pdf" component={ProtectPdf} />
           <Route path="/redact-pdf" component={RedactPdf} />
-          <Route path="/sign-pdf" component={SignPdf} />
+          <Route path="/sign-pdf">{() => <EditPdf intent="sign" />}</Route>
+          <Route path="/edit-pdf">{() => <EditPdf intent="edit" />}</Route>
           <Route path="/ocr-pdf" component={OcrPdf} />
           <Route path="/word-to-pdf" component={WordToPdf} />
           <Route path="/powerpoint-to-pdf" component={PowerpointToPdf} />

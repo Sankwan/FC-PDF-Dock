@@ -17,7 +17,8 @@ kept for the account; the app does not record a tool-use history. The scanner st
 |---|---|---|
 | Official documents | **Letterhead**: write a letter on the FC letterhead, put the letterhead on an existing PDF, or download a blank letterhead (PDF or Word) | device |
 | | **Watermark**: CONFIDENTIAL, DRAFT, CERTIFIED TRUE COPY and other presets | device |
-| | **Sign PDF**: draw and place a signature; records the signing time, and **Check a signed PDF** shows whether (and when) it was changed afterwards | device |
+| | **Edit PDF**: tap existing text to retype it (the original is painted over), add text, signatures, ticks, crosses, dates, stamps, shapes, pen and highlighter; undo/redo; unfinished work is kept on the device for 24 hours | device |
+| | **Sign PDF**: draw, type or photograph a signature (paper removed automatically) and place it; it snaps to a "Signature:" line when there is one; records the signing time, and **Check a signed PDF** shows whether (and when) it was changed afterwards | device |
 | | **Redact PDF**: finds Ghana Card, phone, email, SSNIT and account numbers and names, or draw boxes; removes them permanently and then verifies nothing is left | device |
 | | **QR codes**: create PNG codes or read their text from an image | device |
 | | **Protect PDF**: password to open, and/or restrict printing, copying and editing | device |
