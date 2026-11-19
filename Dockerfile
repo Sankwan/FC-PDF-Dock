@@ -3,7 +3,7 @@
 # PDF to Word behind the same address) use deploy/headoffice/, which builds
 # this image and mounts its own nginx configuration over the default one.
 
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 
 # Vite inlines VITE_* values into the JavaScript at build time, so they are
@@ -28,6 +28,9 @@ ENV VITE_APP_NAME=$VITE_APP_NAME \
     VITE_PDF2WORD_ENABLED=$VITE_PDF2WORD_ENABLED
 
 COPY package.json package-lock.json ./
+# kokoro-js brings in onnxruntime-node, whose install script tries to download a
+# GPU build. The app only uses ONNX Runtime in the browser, so skip it.
+ENV ONNXRUNTIME_NODE_INSTALL_CUDA=skip
 RUN npm ci
 COPY client ./client
 COPY vite.config.ts tsconfig.json tailwind.config.ts postcss.config.js ./

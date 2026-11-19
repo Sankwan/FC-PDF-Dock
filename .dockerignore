@@ -6,3 +6,6 @@ services
 .env.*
 !.env.example
 *.md
+# Made during the build (vendor:kokoro, vite.config.ts), like on Railway
+client/public/models
+client/public/ort
