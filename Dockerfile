@@ -31,6 +31,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY client ./client
 COPY vite.config.ts tsconfig.json tailwind.config.ts postcss.config.js ./
+COPY scripts/vendor-kokoro.mjs ./scripts/
+# The Read PDF natural voice model (~92 MB), served by us, not fetched from elsewhere.
+RUN npm run vendor:kokoro
 RUN npm run build
 
 FROM nginx:1.27-alpine

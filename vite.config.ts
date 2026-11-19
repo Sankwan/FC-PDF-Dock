@@ -17,6 +17,14 @@ export default defineConfig(({ mode }) => {
     cpSync(path.resolve(__dirname, "node_modules/pdfjs-dist", directory), path.join(pdfAssets, directory), { recursive: true });
   }
 
+  // ONNX Runtime (for the Read PDF natural voice) must also load from this
+  // site, never a CDN: same version as the one transformers.js imports.
+  const ortAssets = path.resolve(__dirname, "client/public/ort");
+  mkdirSync(ortAssets, { recursive: true });
+  for (const file of ["ort-wasm-simd-threaded.jsep.mjs", "ort-wasm-simd-threaded.jsep.wasm"]) {
+    cpSync(path.resolve(__dirname, "node_modules/onnxruntime-web/dist", file), path.join(ortAssets, file));
+  }
+
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const appName = env.VITE_APP_NAME || "PDFDock";
   const orgName = env.VITE_ORG_NAME || "Forestry Commission";
@@ -34,6 +42,9 @@ export default defineConfig(({ mode }) => {
   const devPdf2WordTarget = process.env.DEV_PDF2WORD_URL || "http://127.0.0.1:8000";
 
   return {
+    // Where the Read PDF voice worker loads ONNX Runtime from in development
+    // (the dev server refuses module imports from public/; production uses /ort/).
+    define: { __ORT_DEV_PATH__: JSON.stringify(`/@fs${path.resolve(__dirname, "node_modules/onnxruntime-web/dist")}/`) },
     plugins: [
       react(),
       {
@@ -57,11 +68,18 @@ export default defineConfig(({ mode }) => {
           // offline use" (client/src/lib/offlinePrep.ts).
           globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}", "pdfjs-assets/**/*"],
           // These folders' own JS glue would otherwise match "js" above.
-          globIgnores: ["**/tesseract/**", "**/opencv/**", "**/fc/fc-logo-src.jpg"],
+          globIgnores: ["**/tesseract/**", "**/opencv/**", "**/ort/**", "**/models/**", "**/kokoroWorker-*.js", "**/fc/fc-logo-src.jpg"],
           // API routes must never receive the offline HTML fallback.
           navigateFallbackDenylist: [/^\/api\//],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [
+            {
+              // Read PDF natural voice: ONNX Runtime and the Kokoro model,
+              // both served from this site. Kept once downloaded.
+              urlPattern: /\/(ort|models)\/|kokoroWorker-.*\.js$|ort-wasm-simd-threaded/,
+              handler: "CacheFirst",
+              options: { cacheName: "voice-engine" },
+            },
             {
               // Local OCR engine (worker + WASM core + language data),
               // served from public/tesseract/: same origin, not a CDN.

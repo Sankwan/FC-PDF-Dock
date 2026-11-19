@@ -15,7 +15,10 @@ const Footer = () => (
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">
             {brand.name} is Forestry Commission's document toolkit for staff. Scan, edit and convert files on this device.
           </p>
-          <a href={ICT_HELP_URL} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4">Help — contact ICT</a>
+          <div className="mt-3 flex flex-wrap gap-x-5">
+            <Link href="/guides" className="inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4">Guides</Link>
+            <a href={ICT_HELP_URL} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4">Help — contact ICT</a>
+          </div>
           <p className="type-caption break-all text-muted-foreground">{ICT_EMAIL}</p>
           <p className="mt-3 text-xs text-muted-foreground">
             {ORG.name} · {ORG.headOffice} · {ORG.ministry}

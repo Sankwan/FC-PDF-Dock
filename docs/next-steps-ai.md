@@ -13,7 +13,7 @@ Status: planned, not built. Nothing here is a current capability (see PRODUCT.md
 
 | # | Feature | Model / approach | Runs on | Notes |
 |---|---|---|---|---|
-| 1 | **Audio reader** (read a PDF aloud) | Browser voices first (free, no download); Kokoro-82M (Apache 2.0) as the better voice | Device | Highlights the sentence being read; skip/back; speed. Kokoro has US/UK English voices only. |
+| 1 | **Audio reader** (read a PDF aloud) — **built: Read PDF** | Browser voices; Kokoro-82M (Apache 2.0) as the natural voice, served from /models/kokoro (scripts/vendor-kokoro.mjs) | Device | Highlights the sentence being read; skip/back; speed. Kokoro has US/UK English voices only. |
 | 2 | **Transcriber** (recordings → text, minutes) | Whisper large-v3 / large-v3-turbo (MIT) via faster-whisper | Server (GPU) | Ghanaian-accented English needs the large model; test on FC recordings first. Twi via community Akan fine-tunes is research-grade. Output: text, Word, timestamps. |
 | 3 | **Better OCR for scans** | PaddleOCR-VL (Apache 2.0) or GLM-OCR (MIT) | Server | Replaces/augments Tesseract for poor scans, stamps, tables. Feeds OCR PDF, PDF to Excel and Compare. |
 | 4 | **Hard-file PDF to Word / Excel** | Granite-Docling-258M (Apache 2.0) via Docling | Server | Structured tables and headings when the current geometry-based approach fails. |

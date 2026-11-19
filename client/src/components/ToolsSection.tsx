@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import {
   Combine, Scissors, LayoutGrid, FileDown, ScanLine, ImagePlus, Images, FileType2, FileText,
-  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, FilePenLine, Hash, Wrench, Presentation, Sheet, PanelTop, Crop, FileDiff, Table2, type LucideIcon,
+  TextSearch, FileBadge2, Stamp, PenLine, ShieldCheck, EyeOff, QrCode, Image, FilePenLine, Hash, Wrench, Presentation, Sheet, PanelTop, Crop, FileDiff, Table2, BookOpenText, type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Search, Clock3 } from "lucide-react";
@@ -37,6 +37,7 @@ export const tools: Tool[] = [
   { id: "excel-to-pdf", title: "Excel to PDF", description: "Convert .xlsx spreadsheets to PDF on this device.", link: "/excel-to-pdf", icon: Sheet, group: "convert", isNew: true },
   { id: "pdf-to-word", title: "PDF to Word", description: "Create editable text or page images in Word, on this device.", link: "/pdf-to-word", icon: FileText, group: "convert" },
   { id: "pdf-to-excel", title: "PDF to Excel", description: "Pull tables such as inventories and schedules into a spreadsheet.", link: "/pdf-to-excel", icon: Table2, group: "convert", isNew: true },
+  { id: "read-pdf", title: "Read PDF", description: "Read a PDF, or listen to it with each sentence highlighted as it's read aloud.", link: "/read-pdf", icon: BookOpenText, group: "convert", isNew: true },
   { id: "ocr-pdf", title: "OCR PDF", description: "Make scanned PDFs searchable so you can find and copy text.", link: "/ocr-pdf", icon: TextSearch, group: "convert" },
 
   { id: "letterhead", title: "Letterhead", description: "Put the official FC letterhead on a letter, or get a blank letterhead for Word.", link: "/letterhead", icon: FileBadge2, group: "official", isNew: true },
@@ -52,7 +53,7 @@ export const tools: Tool[] = [
 const GROUPS: { id: Tool["group"]; title: string; blurb: string }[] = [
   { id: "official", title: "Official documents", blurb: "Letterhead, signatures, redaction and protection" },
   { id: "organise", title: "Organise", blurb: "Combine, split, rearrange and shrink" },
-  { id: "convert", title: "Scan & convert", blurb: "Paper, photos, Word and PDF" },
+  { id: "convert", title: "Scan, convert & read", blurb: "Paper, photos, Word, PDF and read aloud" },
 ];
 
 export const visibleTools = tools;

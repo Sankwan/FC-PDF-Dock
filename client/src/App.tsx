@@ -32,6 +32,9 @@ const HeadersFooters = lazy(() => import("@/pages/HeadersFooters"));
 const CropPdf = lazy(() => import("@/pages/CropPdf"));
 const ComparePdf = lazy(() => import("@/pages/ComparePdf"));
 const PdfToExcel = lazy(() => import("@/pages/PdfToExcel"));
+const ReadPdf = lazy(() => import("@/pages/ReadPdf"));
+const Guides = lazy(() => import("@/pages/Guides"));
+const GuideArticle = lazy(() => import("@/pages/GuideArticle"));
 
 // Heavier tools load on demand so the first install stays small.
 const RedactPdf = lazy(() => import("@/pages/RedactPdf"));
@@ -75,6 +78,9 @@ function Tools() {
           <Route path="/crop-pdf" component={CropPdf} />
           <Route path="/compare-pdf" component={ComparePdf} />
           <Route path="/pdf-to-excel" component={PdfToExcel} />
+          <Route path="/read-pdf" component={ReadPdf} />
+          <Route path="/guides" component={Guides} />
+          <Route path="/guides/:slug" component={GuideArticle} />
           <Route path="/repair-pdf" component={RepairPdf} />
           <Route path="/pdf-to-image" component={PdfToImage} />
           <Route path="/image-to-pdf" component={ImageToPdf} />

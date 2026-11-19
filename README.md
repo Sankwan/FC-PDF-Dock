@@ -35,6 +35,7 @@ kept for the account; the app does not record a tool-use history. The scanner st
 | | Image to PDF (including all TIFF/HEIC pages), PDF to Image, OCR PDF, Word, PowerPoint and Excel to PDF (.docx/.pptx/.xlsx) | device |
 | | PDF to Word | browser: editable text / page images, local English OCR |
 | | **PDF to Excel**: tables to .xlsx (a sheet per table or one sheet), joins tables that run over a page break; numbers, GH₵ amounts and dates as real values, IDs and phone numbers kept as text; flags totals that don't add up; fix columns/rows or draw a box around a missed table; CSV too | device |
+| | **Read PDF**: read a PDF page by page or as large reflowing text; listen with each sentence highlighted, speed and skip controls, tap a sentence to jump; device voices, or the natural Kokoro voice (downloaded once from this server, ~92 MB, runs on the device) | device |
 
 Locked PDFs are detected when added to any tool; the person is asked for the
 password (or, for files that only have editing restrictions, asked to

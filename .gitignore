@@ -10,3 +10,7 @@ client/public/pdfjs-assets/
 
 # Local visual QA captures, not application assets.
 .impeccable/review/
+
+# Downloaded at build time (scripts/vendor-kokoro.mjs) and copied from node_modules (vite.config.ts).
+client/public/models/
+client/public/ort/

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, ChevronDown, CloudDownload, Download, LogOut, Moon, Sun, WifiOff, CircleHelp } from "lucide-react";
+import { ArrowLeft, BookOpenText, ChevronDown, CloudDownload, Download, LogOut, Moon, Sun, WifiOff, CircleHelp } from "lucide-react";
 import { ICT_HELP_URL } from "@/lib/support";
 import { brand, features } from "@/brand";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -84,6 +84,9 @@ const Header = () => {
             <a href="/#tools" className="hidden rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white md:inline-block">
               All tools
             </a>
+            <Link href="/guides" className="hidden rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white md:inline-block">
+              Guides
+            </Link>
 
             <div className="relative" ref={menuRef}>
               <button
@@ -113,6 +116,7 @@ const Header = () => {
                   <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setOfflineOpen(true); }}>
                     <CloudDownload size={16} className="text-brand" /> Set up offline access
                   </button>
+                  <Link href="/guides" className={menuItem} onClick={() => setMenuOpen(false)}><BookOpenText size={16} className="text-brand" /> Guides — how to use each tool</Link>
                   <a href={ICT_HELP_URL} className={menuItem} onClick={() => setMenuOpen(false)}><CircleHelp size={16} className="text-brand" /> Help — email ICT</a>
                   {!isStandalone && (
                     <button type="button" className={menuItem} onClick={() => { setMenuOpen(false); setInstallOpen(true); }}>
