@@ -26,4 +26,31 @@ if (typeof Map.prototype.getOrInsertComputed !== "function") {
   };
 }
 
+/*
+ * pdf.js 6 reads page text with `for await (… of readableStream)`. Safari
+ * (at least up to 18) can't loop over a ReadableStream, so getTextContent
+ * failed there: Read PDF, Compare, PDF to Excel and Redact's search broke.
+ */
+if (typeof ReadableStream !== "undefined" && !(Symbol.asyncIterator in ReadableStream.prototype)) {
+  const values = function (this: ReadableStream, { preventCancel = false } = {}) {
+    const reader = this.getReader();
+    return {
+      next: () => reader.read(),
+      async return(value?: unknown) {
+        if (!preventCancel) {
+          const done = reader.cancel(value);
+          reader.releaseLock();
+          await done;
+        } else {
+          reader.releaseLock();
+        }
+        return { done: true as const, value };
+      },
+      [Symbol.asyncIterator]() { return this; },
+    };
+  };
+  Object.defineProperty(ReadableStream.prototype, "values", { value: values, writable: true, configurable: true });
+  Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, { value: values, writable: true, configurable: true });
+}
+
 export {};
