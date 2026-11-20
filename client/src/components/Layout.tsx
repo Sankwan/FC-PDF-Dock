@@ -2,6 +2,7 @@ import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 import InstallBanner from "./InstallBanner";
+import UpdateBanner from "./UpdateBanner";
 import { useAuth } from "@/context/Auth";
 
 interface LayoutProps {
@@ -18,6 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main id="main-content" tabIndex={-1} className="min-w-0 flex-grow">{children}</main>
       <Footer />
       <InstallBanner />
+      <UpdateBanner />
     </div>
   );
 };
