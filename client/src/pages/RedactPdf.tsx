@@ -253,7 +253,7 @@ const RedactPdf = () => {
                         type="button"
                         aria-label="Remove this box"
                         onClick={() => { setBoxes((all) => all.filter((x) => x.id !== b.id)); setResult(null); }}
-                        className="absolute -right-2.5 -top-2.5 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-white opacity-90 hover:opacity-100"
+                        className="absolute -right-2.5 -top-2.5 grid h-5 w-5 !min-h-0 !min-w-0 place-items-center rounded-full bg-red-600 text-white opacity-90 after:absolute after:-inset-3 after:content-[''] hover:opacity-100"
                       >
                         <X size={11} />
                       </button>

@@ -96,7 +96,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   onClick={() =>
                     onFilesSelected?.(multiple ? carried.map((f) => f.file) : [item.file])
                   }
-                  className="flex w-full items-center gap-3 rounded-xl border border-black/[0.06] bg-card px-3 py-2.5 pr-8 text-left transition-all hover:-translate-y-0.5 hover:border-brand"
+                  className="flex w-full items-center gap-3 rounded-xl border border-black/[0.06] bg-card px-3 py-2.5 pr-12 text-left transition-all hover:-translate-y-0.5 hover:border-brand"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-brand-tint">
                     {item.kind === "image" ? (
@@ -122,7 +122,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   type="button"
                   onClick={() => removeFile(item.id)}
                   aria-label={`Remove ${item.file.name} from workspace`}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-muted-foreground hover:bg-black/[0.06] hover:text-foreground"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 grid h-8 w-8 !min-h-0 !min-w-0 place-items-center rounded-full text-muted-foreground hover:bg-black/[0.06] hover:text-foreground"
                 >
                   <X size={12} />
                 </button>
