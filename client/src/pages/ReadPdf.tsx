@@ -388,7 +388,7 @@ const ReadPdf = () => {
                         )}
                         <button type="button" aria-label="Next sentence" onClick={() => jump(index + 1)} disabled={index >= sentences.length - 1} className="grid h-12 w-12 place-items-center rounded-full hover:bg-muted disabled:opacity-30"><SkipForward size={20} /></button>
                         <div className="ml-1 min-w-0 flex-1">
-                          <p className="truncate text-xs text-muted-foreground">Page {current?.page} · sentence {index + 1} of {sentences.length}</p>
+                          <p className="truncate text-xs text-muted-foreground">Page {current?.page} · <span className="hidden sm:inline">sentence </span>{index + 1} of {sentences.length}</p>
                           <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted"><div className="h-full bg-brand" style={{ width: `${((index + 1) / Math.max(1, sentences.length)) * 100}%` }} /></div>
                         </div>
                         <button type="button" aria-label="Stop listening" onClick={stopListening} className="grid h-11 w-11 place-items-center rounded-full hover:bg-muted"><X size={18} /></button>

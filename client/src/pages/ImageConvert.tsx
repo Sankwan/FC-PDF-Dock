@@ -149,7 +149,7 @@ export default function ImageConvert() {
                       setQuality(Number(e.target.value));
                       setResult(null);
                     }}
-                    className="mt-2 block w-full accent-brand"
+                    className="mt-2 block h-11 w-full accent-brand"
                   />
                 </label>
               )}

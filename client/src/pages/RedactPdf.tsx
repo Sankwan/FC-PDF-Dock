@@ -35,6 +35,9 @@ const RedactPdf = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<RedactResult | null>(null);
   const [draft, setDraft] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  // On touch screens a swipe on the page should scroll, so drawing is switched on when wanted.
+  const coarse = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+  const [drawOn, setDrawOn] = useState(!coarse);
   const [manualArea, setManualArea] = useState<Rectangle>({ x: .1, y: .1, w: .3, h: .1 });
   const surfaceRef = useRef<HTMLDivElement>(null);
 
@@ -152,7 +155,7 @@ const RedactPdf = () => {
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   };
   const onDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest("[data-box]")) return;
+    if (!drawOn || (e.target as HTMLElement).closest("[data-box]")) return;
     e.preventDefault();
     surfaceRef.current?.setPointerCapture(e.pointerId);
     const p = pointFrom(e);
@@ -219,9 +222,18 @@ const RedactPdf = () => {
                 </div>
               </div>
               <div className="bg-muted p-3 sm:p-5">
+                {coarse && (
+                  <div className="mx-auto mb-3 flex max-w-[760px] items-center gap-3">
+                    <p className="flex-1 text-sm text-muted-foreground">{drawOn ? "Drag on the page to black out an area." : "To black out something the search can't find, draw a box over it."}</p>
+                    <button type="button" aria-pressed={drawOn} onClick={() => setDrawOn((d) => !d)}
+                      className={`min-h-11 shrink-0 rounded-md px-4 text-sm font-semibold ${drawOn ? "bg-brand text-white" : "border border-brand text-brand"}`}>
+                      {drawOn ? "Done" : "Draw a box"}
+                    </button>
+                  </div>
+                )}
                 <div
                   ref={surfaceRef}
-                  className="relative mx-auto w-full max-w-[760px] cursor-crosshair touch-none select-none bg-white shadow-sm"
+                  className={`relative mx-auto w-full max-w-[760px] select-none bg-white shadow-sm ${drawOn ? "cursor-crosshair touch-none" : ""}`}
                   style={{ aspectRatio: `1 / ${pageAspect}` }}
                   onPointerDown={onDown}
                   onPointerMove={onMove}

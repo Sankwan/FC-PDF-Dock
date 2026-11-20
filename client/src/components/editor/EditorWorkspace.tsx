@@ -127,6 +127,47 @@ const EditorWorkspace = ({ file, startWithSignature, initialObjects, draftScope,
     pageRefs.current.forEach((el) => el && io.observe(el));
     return () => io.disconnect();
   }, [pdf, sizes]);
+  // Two-finger pinch zooms the pages (not the whole app), keeping the spot
+  // between the fingers in place. The page blocks the browser's own pinch,
+  // so without this a phone user had no way to zoom with their fingers.
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let pinch: { d0: number; z0: number; cx: number; cy: number; mx: number; my: number } | null = null;
+    const gap = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) || 1;
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      drag.current = null; // a second finger cancels a move or a pen stroke
+      const r = el.getBoundingClientRect();
+      const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+      const my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      const z0 = zoomRef.current;
+      pinch = { d0: gap(e.touches), z0, cx: (el.scrollLeft + mx) / z0, cy: (el.scrollTop + my) / z0, mx, my };
+    };
+    const onMove = (e: TouchEvent) => {
+      const p = pinch;
+      if (!p || e.touches.length !== 2) return;
+      e.preventDefault();
+      const z = Math.min(3, Math.max(0.5, +((p.z0 * gap(e.touches)) / p.d0).toFixed(3)));
+      setZoom(z);
+      requestAnimationFrame(() => { el.scrollLeft = p.cx * z - p.mx; el.scrollTop = p.cy * z - p.my; });
+    };
+    const onEnd = (e: TouchEvent) => { if (e.touches.length < 2) pinch = null; };
+    el.addEventListener("touchstart", onStart, { passive: false });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, []);
+
   const imagesRef = useRef(images);
   imagesRef.current = images;
   useEffect(() => () => Object.values(imagesRef.current).forEach(URL.revokeObjectURL), []);
